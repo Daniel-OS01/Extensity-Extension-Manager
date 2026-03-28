@@ -1,158 +1,190 @@
-## Extensity
+# Extensity Plus
 
-### Quickly enable/disable Google Chrome extensions
+Extensity Plus is a Chrome Manifest V3 extension for managing installed browser extensions and Chrome apps from a fast popup UI.
 
-Tired of having too many extensions in your toolbar? Try Extensity, the ultimate tool
-for lightning fast enabling and disabling all your extensions for Google Chrome.
-Just enable the extension when you want to use it, and disable when you want to
-get rid of it for a little while. You can also launch Chrome Apps right from the list.
+This branch upgrades the project toward a 2.0 architecture while keeping the original Extensity strengths:
 
-* Keep your browser lean and fast - disable extensions that you won't use right away.
-* Keep your toolbar clean.
-* Turn all extensions off (and back on) with a single click.
-* Quick switch between several extensions groups using the Profiles feature.
-* Allow your most important extensions to be always enabled.
-* Use aliases, groups, URL rules, reminders, and history from the full dashboard.
-* Import and export complete backups as JSON, or export the current extension list as CSV.
-* Switch between list and grid layouts, sort by name/popularity/recent use, and undo the last bulk action.
-* Keep lightweight settings in Chrome sync storage while larger state stays local.
-* Ideal companion for extensions collectors.
+- fast popup-first workflows
+- simple Knockout.js architecture
+- low-friction enable/disable actions
+- profile-based extension management
 
-Extensity is open source software. Full source code at GitHub https://github.com/sergiokas/Extensity
+## What It Can Do
 
-Install it from the [Chrome Web Store](https://chrome.google.com/webstore/detail/extensity/jjmflmamggggndanpgfnpelongoepncg).
+### Popup Controls
 
-Website: [https://sergiokas.github.io/Extensity/](https://sergiokas.github.io/Extensity/)
+- Enable or disable extensions from the popup.
+- Toggle all extensions off and restore them with one action.
+- Undo the last reversible toggle action.
+- Search by extension name, alias, or description.
+- Switch between list view and grid view.
+- Sort extensions alphabetically, by recent use, or by toggle frequency.
+- Show Always On badges and group badges directly in the popup.
+- Navigate the popup with the keyboard.
 
-Follow us in Twitter: [@ExtensityChrome](https://twitter.com/ExtensityChrome)
+### Profiles
 
-### Build
+- Save extension sets as profiles.
+- Apply profiles from the popup.
+- Keep Always On and Favorites as reserved profile concepts.
+- Rename profiles inline.
+- Select multiple profiles and bulk delete them.
+- Choose the layout used on the profiles page.
+- Cycle profiles with static Chrome commands.
 
-Install the local build tooling and create a distributable package with:
+### Dashboard
+
+- Manage aliases for installed extensions.
+- Create and edit groups.
+- Create and edit URL rules.
+- Review extension event history.
+- Import and export backup data.
+- Export the current extension inventory as CSV.
+
+### Data And Automation
+
+- Save lightweight preferences in `chrome.storage.sync`.
+- Save large and device-specific state in `chrome.storage.local`.
+- Track toggle history and usage counters.
+- Schedule reminder notifications after manual enable flows.
+- Apply URL-based enable/disable rules in the background service worker.
+- Export and import a full versioned backup envelope.
+
+### Build And Release
+
+- Build the extension locally with project-managed tooling.
+- Validate the manifest with a dedicated script.
+- Run unit tests for pure browser modules.
+- Package `dist/dist.zip` for distribution.
+- Generate a Chrome Web Store submission bundle with metadata and checksums.
+- Run CI and artifact packaging in GitHub Actions.
+
+## 2.0 Architecture
+
+The 2.0 branch moves extension state ownership into the background service worker.
+
+Key design decisions:
+
+- `js/background.js` is the single owner of extension enable/disable mutations.
+- Popup, options, profiles, and dashboard pages communicate through a background message API.
+- Undo history, reminders, usage counters, and event history are updated from the same mutation path.
+- Large collections such as aliases, groups, rules, and history are kept out of `chrome.storage.sync` to avoid sync quota issues.
+
+Main surfaces:
+
+- `index.html`: popup
+- `options.html`: options page
+- `profiles.html`: profile editor
+- `dashboard.html`: management dashboard
+
+Supporting modules:
+
+- `js/storage.js`
+- `js/migration.js`
+- `js/import-export.js`
+- `js/url-rules.js`
+- `js/history-logger.js`
+- `js/reminders.js`
+- `js/drive-sync.js`
+
+## Current 2.0 Updates
+
+Implemented in the current branch:
+
+- MV3 service-worker-owned state pipeline
+- popup list/grid view
+- alpha / popular / recent sorting
+- alias-aware search
+- Always On badges
+- high contrast mode
+- popup undo
+- profile rename and bulk delete
+- dashboard for aliases, groups, URL rules, history, and import/export
+- JSON backup/restore
+- CSV export
+- reminder scheduling helpers
+- background URL rule evaluation
+- GitHub Actions CI
+- Chrome Web Store bundle generation
+
+Deferred or partial:
+
+- full Google Drive backup is not enabled yet because OAuth configuration is still missing
+- browser-level manual validation is still required for popup flows, Chrome commands, reminders, URL rules, and live extension management behavior
+
+## Commands And Workflow
+
+Install dependencies:
 
 ```bash
 npm install
+```
+
+Run tests:
+
+```bash
+npm test
+```
+
+Validate the manifest:
+
+```bash
+npm run check:manifest
+```
+
+Build the extension:
+
+```bash
 make dist
 ```
 
-This writes the packaged extension to `dist/dist.zip`.
+Generate the Chrome Web Store submission bundle:
 
-### What's new:
+```bash
+npm run bundle:chrome-store
+```
 
-v2.0.0 (Mar 2026)
-- Added a service-worker-owned state pipeline for toggles, profiles, undo, imports, and URL rules.
-- Added popup list/grid view, alpha/popular/recent sorting, high-contrast mode, always-on badges, and undo.
-- Added the dashboard for aliases, groups, URL rules, history, and import/export workflows.
-- Added profile rename, bulk delete, layout controls, and static keyboard commands for toggle-all and profile cycling.
-- Added JSON backup/restore, CSV export, reminder scheduling, and event history logging.
-- Google Drive backup remains gated behind OAuth configuration and is not enabled in this build yet.
+Artifacts:
 
-v1.14.0 (Sep 2024)
-- **New Feature**: Dark Mode (based on system settings)
-- Migrated from CSSO to SASS
+- `dist/dist.zip`
+- `artifacts/chrome-web-store/`
 
-v1.13.0 (Aug 2024)
-- **New Feature**: Added "Favorite Extensions" list.
+## GitHub Actions
 
-v1.12.0 (July 2024)
-- Migrated to Chrome Manifest v3
+This repository includes:
 
-v1.11.0 (Sep 2020)
-- **New Feature**: Added "Always On" profile
+- `.github/workflows/ci.yml`
+  - runs tests
+  - validates the manifest
+  - builds the extension
+  - creates and uploads distribution artifacts
 
-v1.10.0 (Jan 2019)
-- Save Profiles locally when the amount of data exceeds Google's quota.
+- `.github/workflows/chrome-web-store-bundle.yml`
+  - runs on manual dispatch and version tags
+  - packages the Chrome Web Store submission bundle
+  - uploads the release-ready artifact
 
-v1.9.0 (Sep 2018)
-- Removed `chrome.tabs` API dependency
+## Documentation
 
-v1.8.0 (Ago 2018)
-- Removed jQuery dependency
-- Updated build system
+Additional project documentation lives in `docs/`:
 
-v1.7.0 (Ago 2018)
-- Added icon for developer extensions
+- `docs/extensity-2.0-plan.md`
+- `docs/extensity-2.0-status.md`
+- `docs/ci-and-release.md`
 
-v1.6.0 (Jul 2018)
-- **New Feature**: Added extension/app icon to access the options page
+## Credits And Inspiration
 
-v1.5.0 (Jun 2018)
-- Added visual indication of the currently active profile
+This project is based on the original Extensity work by Sergio Kas and the broader Extensity open-source lineage.
 
-v1.4.0 (Jan 2018)
-- **New Feature**: Sync between computers through Chrome Storage
+The 2.0 planning and feature direction in this repo also drew inspiration from the following projects:
 
-v1.3.1 (Nov 2017)
-- Changed profiles icon, minor visual changes
+- [hankxdev/one-click-extensions-manager](https://github.com/hankxdev/one-click-extensions-manager)
+- [JasonGrass/auto-extension-manager](https://github.com/JasonGrass/auto-extension-manager)
+- [jeevan-lal/Extensity-Ultra](https://github.com/jeevan-lal/Extensity-Ultra)
 
-v1.3.0 (Feb 2017)
-- **New Feature**: Search box for extensions and apps
-- Temporary workaround for [Chromium bug](https://bugs.chromium.org/p/chromium/issues/detail?id=307912)
+Those repos helped inform ideas around popup management, URL-triggered behavior, and expanded extension-management UX.
 
-v1.2.4 (Sept 2016)
-- Added option to show enabled Extensions first
+## Notes
 
-v1.2.3 (May 2016)
-- Updated compatibility for ChromeOS
-
-v1.2.2 (Apr 2016)
-- Updated toggle switch style
-
-v1.2.1 (Apr 2016)
-- Backwards compatibility for toggle switch
-- Small text fixes
-
-v1.2.0 (Apr 2016)
-- **New Feature**: Profiles! Our top-most requested feature is here. Quick switch between groups of extensions with a single click.
-- Major overhaul of the engine
-- New retina icons
-- Minor style changes
-
-v1.1.11 (Jun 2015)
-- **New Feature**: turn all enabled extensions off, then turn them back on
-- Style changes
-- New icons
-
-v1.1.10 (Feb 2015)
-- More performance improvements
-- Fixed Chrome's extensions page link
-
-v0.1.9 (Jan 2015)
-- Added option to show apps first
-
-v0.1.8 (Dec 2014)
-- Updated to flat icons
-- Updated library versions
-- Code cleanup
-- Cosmetic fixes (e.g. extensions with very long names)
-- Updated license
-
-v0.1.7 (Jul 2013)
-- Excluding Chrome themes from the list
-
-v0.1.6 (Jul 2012)
-- Added separate page initializer files
-- Added underscore.js and underscore.string
-- Removed deprecated jQuery templates dependency
-- Added some performance improvements
-- Added support for Chrome Extensions v2 manifest
-
-v0.1.5 (Mar 2012)
-- Updated font styles
-
-v0.1.4 (Mar 2012)
-- Updated styles
-- Added makefile for extension distribution
-- Fixed Twitter share link
-
-v0.1.3 (Jun 2011)
-- Added share and rate icons
-
-v0.1.2 (Jun 2011)
-- Added header with link to chrome://extensions/ and Extensity options
-- Added section headers for grouping Apps and Extensions
-- Added ability to launch apps (as disabling them didn't make any real sense)
-- Added options page to configure grouping and header display
-
-v0.1.1 (May 2011)
-- Fixed scrollbar for really long extension lists
+- This repo is a local evolution of the Extensity concept, not the original upstream release branch.
+- If you plan to publish this fork to the Chrome Web Store, review permissions, listing content, privacy disclosures, and OAuth requirements before submission.
