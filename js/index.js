@@ -133,6 +133,10 @@ document.addEventListener("DOMContentLoaded", function() {
       return self.undoDepth() > 0;
     });
 
+    self.viewToggleIcon = ko.pureComputed(function() {
+      return self.opts.viewMode() === "grid" ? "fa-list" : "fa-th-large";
+    });
+
     self.applyState = function(state) {
       self.opts.apply(state.options);
       self.activeProfile(state.options.activeProfile);
