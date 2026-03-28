@@ -1,11 +1,11 @@
 # Primitive makefile for including just required files in the distribution.
-FILES=index.html options.html profiles.html manifest.json
+FILES=dashboard.html index.html options.html profiles.html manifest.json
 DIRS=images styles js fonts
 DIST=dist
-JS=engine.js index.js options.js profiles.js migration.js
-CSS=index.css options.css normalize.css
-JSMIN=uglifyjs --compress --mangle
-CSSMIN=sass --stdin --style=compressed
+JS=background.js dashboard.js drive-sync.js engine.js history-logger.js import-export.js index.js migration.js options.js profiles.js reminders.js storage.js url-rules.js
+CSS=dashboard.css index.css options.css normalize.css
+JSMIN=npx --no-install uglify-js --compress --mangle
+CSSMIN=npx --no-install sass --stdin --style=compressed
 
 dist: clean copy minify pack
 
@@ -26,8 +26,8 @@ minify: $(JS) $(CSS)
 
 pack:
 	@echo "### Packing..."
-	find $(DIST) -name '.DS_Store' | xargs rm
-	cd $(DIST); zip -r dist.zip *
+	find $(DIST) -name '.DS_Store' -delete
+	cd $(DIST); python3 -m zipfile -c dist.zip *
 
 clean:
 	rm -rf $(DIST)

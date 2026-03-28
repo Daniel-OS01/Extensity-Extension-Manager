@@ -1,9 +1,12 @@
 {
   "name": "Extensity",
-  "version": "1.14.0",
+  "version": "2.0.0",
   "manifest_version": 3,
   "description": "Quickly enable/disable Google Chrome extensions",
-  "options_page": "options.html",
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
   "icons" : {
     "16" : "images/icon16.png",
     "48" : "images/icon48.png",
@@ -15,7 +18,33 @@
     "default_popup": "index.html"
   },
   "background": {
-    "service_worker": "js/migration.js"
+    "service_worker": "js/background.js"
   },
-  "permissions": ["management","storage"]
+  "permissions": [
+    "alarms",
+    "contextMenus",
+    "management",
+    "notifications",
+    "storage",
+    "tabs",
+    "webNavigation"
+  ],
+  "optional_permissions": [
+    "identity"
+  ],
+  "commands": {
+    "toggle-all-extensions": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+E",
+        "mac": "Command+Shift+E"
+      },
+      "description": "Toggle all extensions on or off"
+    },
+    "cycle-next-profile": {
+      "description": "Switch to the next saved profile"
+    },
+    "cycle-previous-profile": {
+      "description": "Switch to the previous saved profile"
+    }
+  }
 }

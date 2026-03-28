@@ -2,17 +2,25 @@
 
 ## Prerequisites
 
-- uglify-js
-- sass
+- Node.js 18+
+- npm
 
-```
-npm install -g uglify-js sass
+Install the project-managed build tools with:
+
+```bash
+npm install
 ```
 
 ## Building
 
 To build the distributable version, just run:
 
+```bash
+make dist
 ```
-make
+
+To generate the Chrome Web Store submission bundle after the build completes, run:
+
+```bash
+npm run bundle:chrome-store
 ```

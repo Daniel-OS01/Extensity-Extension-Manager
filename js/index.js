@@ -1,181 +1,305 @@
 document.addEventListener("DOMContentLoaded", function() {
+  function levenshteinWithin(source, query, limit) {
+    var left = source.toLowerCase();
+    var right = query.toLowerCase();
 
-  var SearchViewModel = function() {
+    if (Math.abs(left.length - right.length) > limit) {
+      return false;
+    }
+
+    var previous = [];
+    for (var index = 0; index <= right.length; index += 1) {
+      previous[index] = index;
+    }
+
+    for (var row = 1; row <= left.length; row += 1) {
+      var current = [row];
+      var rowMin = current[0];
+
+      for (var column = 1; column <= right.length; column += 1) {
+        var cost = left[row - 1] === right[column - 1] ? 0 : 1;
+        current[column] = Math.min(
+          current[column - 1] + 1,
+          previous[column] + 1,
+          previous[column - 1] + cost
+        );
+        rowMin = Math.min(rowMin, current[column]);
+      }
+
+      if (rowMin > limit) {
+        return false;
+      }
+      previous = current;
+    }
+
+    return previous[right.length] <= limit;
+  }
+
+  function focusSiblingRow(target, direction) {
+    var rows = Array.prototype.slice.call(document.querySelectorAll(".keyboard-row"));
+    var index = rows.indexOf(target);
+    if (index === -1) {
+      return;
+    }
+
+    var next = rows[index + direction];
+    if (next) {
+      next.focus();
+    }
+  }
+
+  function SearchViewModel() {
     var self = this;
     self.q = ko.observable("");
 
-    // TODO: Add more search control here.
-  };
+    self.matchesExtension = function(extension) {
+      var query = (self.q() || "").trim().toLowerCase();
+      if (!query) {
+        return true;
+      }
 
-  var SwitchViewModel = function(exts, profiles, opts) {
+      var haystacks = [
+        extension.alias(),
+        extension.name(),
+        extension.description()
+      ].filter(Boolean).map(function(item) {
+        return item.toLowerCase();
+      });
+
+      if (haystacks.some(function(item) {
+        return item.indexOf(query) !== -1;
+      })) {
+        return true;
+      }
+
+      if (query.length < 3) {
+        return false;
+      }
+
+      return haystacks.some(function(item) {
+        return item.split(/\s+/).some(function(word) {
+          return levenshteinWithin(word, query, 2);
+        });
+      });
+    };
+  }
+
+  function SwitchViewModel(owner) {
     var self = this;
-
-    var init = [];
-
-    self.exts = exts;
-    self.profiles = profiles;
-    self.opts = opts;
-    self.toggled = ko.observableArray().extend({persistable: "toggled"});
+    self.owner = owner;
+    self.restoreList = ko.observableArray([]);
 
     self.any = ko.computed(function() {
-      return self.toggled().length > 0;
+      return self.restoreList().length > 0;
     });
 
     self.toggleStyle = ko.pureComputed(function() {
-      return (self.any()) ? 'fa-toggle-off' : 'fa-toggle-on'
+      return self.any() ? "fa-toggle-off" : "fa-toggle-on";
     });
 
-    var disableFilterFn = function(item) {
-      // Filter out Always On extensions when disabling, if option is set.
-      if(!self.opts.keepAlwaysOn()) return true;
-      return !_(self.profiles.always_on().items()).contains(item.id());
-    };
-
     self.flip = function() {
-      if(self.any()) {
-        // Re-enable
-        _(self.toggled()).each(function(id) {
-          // Old disabled extensions may be removed
-          try{ self.exts.find(id).enable();} catch(e) {};
-        });
-        self.toggled([]);
-      } else {
-        // Disable
-        self.toggled(self.exts.enabled.pluck());
-        self.exts.enabled.disable(disableFilterFn);
-      };
+      self.owner.performAction(ExtensityApi.toggleAll());
     };
 
-  };
+    self.undo = function() {
+      self.owner.performAction(ExtensityApi.undoLast());
+    };
+  }
 
-  var ExtensityViewModel = function() {
+  function ExtensityViewModel() {
     var self = this;
-
+    self.loading = ko.observable(true);
+    self.error = ko.observable("");
+    self.busy = ko.observable(false);
+    self.opts = new OptionsCollection();
     self.profiles = new ProfileCollectionModel();
     self.exts = new ExtensionCollectionModel();
-    self.opts = new OptionsCollection();
     self.dismissals = new DismissalsCollection();
-    self.switch = new SwitchViewModel(self.exts, self.profiles, self.opts);
     self.search = new SearchViewModel();
-    self.activeProfile = ko.observable().extend({persistable: "activeProfile"});
+    self.switch = new SwitchViewModel(self);
+    self.activeProfile = ko.observable(null);
+    self.undoDepth = ko.observable(0);
 
-    var filterFn = function(i) {
-      // Filtering function for search box
-      if(!self.opts.searchBox()) return true;
-      if(!self.search.q()) return true;
-      return i.name().toUpperCase().indexOf(self.search.q().toUpperCase()) !== -1;
+    self.bodyClass = ko.pureComputed(function() {
+      var classes = [];
+      classes.push(self.opts.viewMode() === "grid" ? "grid-view" : "list-view");
+      if (self.opts.contrastMode() === "high") {
+        classes.push("high-contrast");
+      }
+      return classes.join(" ");
+    });
+
+    self.canUndo = ko.pureComputed(function() {
+      return self.undoDepth() > 0;
+    });
+
+    self.applyState = function(state) {
+      self.opts.apply(state.options);
+      self.activeProfile(state.options.activeProfile);
+      self.profiles.applyState(state.profiles);
+      self.exts.applyState(state.extensions);
+      self.switch.restoreList(state.localState.bulkToggleRestore || []);
+      self.undoDepth((state.localState.undoStack || []).length);
+      document.body.className = self.bodyClass();
+      self.loading(false);
+      self.error("");
     };
 
-    var filterProfileFn = function(i) {
-      if(!i.reserved()) return true;
-      return self.opts.showReserved() && i.hasItems();
-    }
+    self.performAction = function(request) {
+      self.busy(true);
+      self.error("");
 
-    var filterFavoriteFn = function(i) {
-      return (self.profiles.favorites().contains(i));
-    }
-
-    var nameSortFn = function(i) {
-      return i.name().toUpperCase();
+      return request.then(function(payload) {
+        if (payload.state) {
+          self.applyState(payload.state);
+        }
+      }).catch(function(error) {
+        self.error(error.message);
+      }).finally(function() {
+        self.busy(false);
+      });
     };
 
-    var statusSortFn = function(i) {
-      return self.opts.enabledFirst() && !i.status();
+    self.refresh = function() {
+      self.loading(true);
+      return self.performAction(ExtensityApi.getState());
     };
 
     self.openChromeExtensions = function() {
-      openTab("chrome://extensions");
+      chrome.tabs.create({ url: "chrome://extensions" });
+      window.close();
+    };
+
+    self.openDashboard = function() {
+      self.performAction(ExtensityApi.openDashboard()).finally(function() {
+        window.close();
+      });
     };
 
     self.launchApp = function(app) {
       chrome.management.launchApp(app.id());
     };
 
-    self.launchOptions = function(ext) {
-      chrome.tabs.create({url: ext.optionsUrl(), active: true});
+    self.launchOptions = function(extension) {
+      chrome.tabs.create({ active: true, url: extension.optionsUrl() });
+    };
+
+    self.toggleViewMode = function() {
+      var nextOptions = self.opts.toJS();
+      nextOptions.viewMode = self.opts.viewMode() === "grid" ? "list" : "grid";
+      self.performAction(ExtensityApi.saveOptions(nextOptions));
+    };
+
+    self.setSortMode = function(mode) {
+      var nextOptions = self.opts.toJS();
+      nextOptions.sortMode = mode;
+      self.performAction(ExtensityApi.saveOptions(nextOptions));
+    };
+
+    self.setProfile = function(profile) {
+      self.performAction(ExtensityApi.applyProfile(profile.name()));
+    };
+
+    self.toggleExtension = function(extension) {
+      self.performAction(ExtensityApi.setExtensionState(extension.id(), !extension.status(), {
+        source: "manual"
+      }));
+    };
+
+    self.handleRowKeydown = function(item, event) {
+      if (event.key === "ArrowDown") {
+        focusSiblingRow(event.currentTarget, 1);
+        event.preventDefault();
+        return;
+      }
+
+      if (event.key === "ArrowUp") {
+        focusSiblingRow(event.currentTarget, -1);
+        event.preventDefault();
+        return;
+      }
+
+      if (event.key !== " " && event.key !== "Enter") {
+        return;
+      }
+
+      if (item.isApp && item.isApp()) {
+        self.launchApp(item);
+      } else {
+        self.toggleExtension(item);
+      }
+      event.preventDefault();
+    };
+
+    self.filterProfile = function(profile) {
+      if (!profile.reserved()) {
+        return true;
+      }
+      return self.opts.showReserved() && profile.hasItems();
+    };
+
+    self.sortExtensions = function(items) {
+      return items.slice().sort(function(left, right) {
+        if (self.opts.enabledFirst() && left.status() !== right.status()) {
+          return left.status() ? -1 : 1;
+        }
+
+        if (self.opts.sortMode() === "frequency" && left.usageCount() !== right.usageCount()) {
+          return right.usageCount() - left.usageCount();
+        }
+
+        if (self.opts.sortMode() === "recent" && left.lastUsed() !== right.lastUsed()) {
+          return right.lastUsed() - left.lastUsed();
+        }
+
+        return left.displayName().toUpperCase().localeCompare(right.displayName().toUpperCase());
+      });
     };
 
     self.listedExtensions = ko.computed(function() {
-      // Sorted/Filtered list of extensions
-      return _(self.exts.extensions()).chain()
-        .filter(filterFn)
-        .sortBy(nameSortFn)
-        .sortBy(statusSortFn)
-        .value()
-    }).extend({countable: null});
+      return self.sortExtensions(self.exts.extensions().filter(function(extension) {
+        return self.search.matchesExtension(extension);
+      }));
+    }).extend({ countable: null });
 
     self.listedApps = ko.computed(function() {
-      // Sorted/Filtered list of apps
-      return _(self.exts.apps())
-        .filter(filterFn);
-    }).extend({countable: null});
+      return self.exts.apps().filter(function(app) {
+        return self.search.matchesExtension(app);
+      }).sort(function(left, right) {
+        return left.displayName().toUpperCase().localeCompare(right.displayName().toUpperCase());
+      });
+    }).extend({ countable: null });
 
     self.listedItems = ko.computed(function() {
-      // Sorted/Filtered list of all items
-      return _(self.exts.items())
-        .filter(filterFn);
-    }).extend({countable: null});
+      return self.exts.items().filter(function(item) {
+        return self.search.matchesExtension(item);
+      }).sort(function(left, right) {
+        return left.displayName().toUpperCase().localeCompare(right.displayName().toUpperCase());
+      });
+    }).extend({ countable: null });
 
     self.listedProfiles = ko.computed(function() {
-      return _(self.profiles.items())
-        .filter(filterProfileFn);
-    }).extend({countable: null});
+      return self.profiles.items().filter(self.filterProfile);
+    }).extend({ countable: null });
 
     self.listedFavorites = ko.computed(function() {
-      return _(self.exts.extensions()).chain()
-        .filter(filterFavoriteFn)
-        .filter(filterFn)
-        .sortBy(nameSortFn)
-        .sortBy(statusSortFn)
-        .value();
-    }).extend({countable: null});
+      return self.sortExtensions(self.exts.extensions().filter(function(extension) {
+        return extension.favorite() && self.search.matchesExtension(extension);
+      }));
+    }).extend({ countable: null });
 
     self.emptyItems = ko.pureComputed(function() {
-      return self.listedApps.none() && self.listedExtensions.none();
+      if (self.opts.groupApps()) {
+        return self.listedApps.none() && self.listedExtensions.none();
+      }
+      return self.listedItems.none();
     });
-
-    self.setProfile = function(p) {
-      self.activeProfile(p.name());
-      // Profile items, plus always-on items
-      var ids = _.union(p.items(), self.profiles.always_on().items());
-      var to_enable = _.intersection(self.exts.disabled.pluck(),ids);
-      var to_disable = _.difference(self.exts.enabled.pluck(), ids);
-      _(to_enable).each(function(id) { self.exts.find(id).enable() });
-      _(to_disable).each(function(id) { self.exts.find(id).disable() });
-    };
-
-    self.unsetProfile = function() {
-      self.activeProfile(undefined);
-    };
-
-    self.toggleExtension = function(e) {
-      e.toggle();
-      self.unsetProfile();
-    }
-
-    // Private helper functions
-    var openTab = function (url) {
-      chrome.tabs.create({url: url});
-      close();
-    };
-
-    var close = function() {
-      window.close();
-    };
-
-    // View helpers
-    var visitedProfiles = ko.computed(function() {
-      return (self.dismissals.dismissed("profile_page_viewed") || self.profiles.any());
-    });
-
-  };
+  }
 
   _.defer(function() {
-    vm = new ExtensityViewModel();
+    var vm = new ExtensityViewModel();
     ko.bindingProvider.instance = new ko.secureBindingsProvider({});
     ko.applyBindings(vm, document.body);
+    vm.refresh();
   });
-
-  // Workaround for Chrome bug https://bugs.chromium.org/p/chromium/issues/detail?id=307912
-  window.setTimeout(function() { document.getElementById('workaround-307912').style.display = 'block'; }, 0);
 });

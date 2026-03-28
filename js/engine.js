@@ -1,349 +1,416 @@
-ko.extenders.pluckable = function(target, option) {
-  // Pluck an iterable by an observable field
-  target.pluck = ko.computed(function() {
-    return _(target()).map(function(i) { return i[option](); });
-  });
-};
-
-ko.extenders.toggleable = function(target, option) {
-  // Toggles for extension collections
-  target.toggle = function(filterFn) {
-    _(target()).chain().filter(filterFn).each(function(i) { i.toggle(); });
-  };
-  target.enable = function(filterFn) {
-    _(target()).chain().filter(filterFn).each(function(i) { i.enable(); });
-  };
-  target.disable = function(filterFn) {
-    _(target()).chain().filter(filterFn).each(function(i) { i.disable(); });
-  };
-};
-
-ko.extenders.persistable = function(target, key) {
-  // Persists a single observable (or observableArray) in cloud browser storage
-  chrome.storage.sync.get(key, function(v) {
-
-    // Set initial value from storage if present.
-    if(v[key]) {
-      target(v[key]);
+(function(root) {
+  function pruneText(value, maxLength) {
+    var text = value == null ? "" : String(value);
+    if (text.length <= maxLength) {
+      return text;
     }
+    return text.slice(0, Math.max(0, maxLength - 1)) + "…";
+  }
 
-    // Subscribe to changes after initializing the value.
-    target.subscribe(function(val) {
-      var obj={};
-      obj[key]=val;
-      chrome.storage.sync.set(obj);
+  ko.extenders.countable = function(target) {
+    target.count = ko.computed(function() {
+      return target().length;
     });
-  });
-};
 
-ko.extenders.countable = function(target, option) {
-  target.count = ko.computed(function() {
-    return target().length;
-  });
-
-  target.any = ko.computed(function() {
-    return target().length > 0;
-  });
-
-  target.many = ko.computed(function() {
-    return target().length > 1;
-  });
-
-  target.none = ko.computed(function() {
-    return target().length == 0;
-  });
-};
-
-var fadeOutMessage = function(id) {
-  el = document.getElementById(id);
-  el.className = "visible";
-  _.delay(function() { el.className = "fadeout"}, 2000);
-};
-
-var DismissalsCollection = function() {
-  var self = this;
-
-  self.dismissals = ko.observableArray();
-
-  self.dismiss = function(id) {
-    self.dismissals.push(id);
-  };
-
-  self.dismissed = function(id) {
-    return (self.dismissals.indexOf(id) !== -1)
-  };
-
-  // Initializer
-  chrome.storage.sync.get("dismissals", function(arr) {
-    self.dismissals(arr);
-    // Subscribe to observables after setting the initial value so we don't re-save the same thing.
-    self.dismissals.subscribe(function(a) {
-      chrome.storage.sync.set({dismissals: a});
+    target.any = ko.computed(function() {
+      return target().length > 0;
     });
-  });
-};
 
-var OptionsCollection = function() {
-  var self = this;
-
-  // Options and defauts
-  var defs = {
-    showHeader   : true,
-    groupApps    : true,
-    appsFirst    : false,
-    enabledFirst : false,
-    searchBox    : true,
-    showOptions  : true,
-    keepAlwaysOn : false,
-    showReserved : false
-  };
-
-  // Define observables.
-  _(defs).each(function(def,key) {
-    self[key] = ko.observable(def);
-  });
-
-  // Save values from all observables.
-  self.save = function(callback) {
-    chrome.storage.sync.set(
-      _(defs).mapObject(function(val, key) { return self[key](); }), callback
-    );
-  };
-
-  // Set observable values from Chrome Storage
-  chrome.storage.sync.get(_(defs).keys(), function(v) {
-    _(v).each(function(val, key) {
-      self[key](val);
+    target.many = ko.computed(function() {
+      return target().length > 1;
     });
-  });
 
-};
+    target.none = ko.computed(function() {
+      return target().length === 0;
+    });
+  };
 
-var ProfileModel = function(name, items) {
-  var self = this;
+  function fadeOutMessage(id) {
+    var element = document.getElementById(id);
+    if (!element) {
+      return;
+    }
+    element.className = "visible";
+    _.delay(function() {
+      element.className = "fadeout";
+    }, 2000);
+  }
 
-  var reserved_names = {
+  function chromeMessage(payload) {
+    return new Promise(function(resolve, reject) {
+      chrome.runtime.sendMessage(payload, function(response) {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+          return;
+        }
+
+        if (!response || !response.ok) {
+          reject(new Error(response && response.error ? response.error : "Unexpected extension response."));
+          return;
+        }
+
+        resolve(response.payload);
+      });
+    });
+  }
+
+  function downloadText(filename, content, mimeType) {
+    var blob = new Blob([content], { type: mimeType || "text/plain;charset=utf-8" });
+    var url = URL.createObjectURL(blob);
+    var anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.click();
+    setTimeout(function() {
+      URL.revokeObjectURL(url);
+    }, 0);
+  }
+
+  function readFileAsText(file) {
+    return new Promise(function(resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function() {
+        resolve(reader.result);
+      };
+      reader.onerror = function() {
+        reject(new Error("Failed to read file."));
+      };
+      reader.readAsText(file);
+    });
+  }
+
+  function DismissalsCollection() {
+    var self = this;
+    self.dismissals = ko.observableArray([]);
+
+    self.dismiss = function(id) {
+      if (self.dismissals.indexOf(id) !== -1) {
+        return;
+      }
+      self.dismissals.push(id);
+      chrome.storage.sync.set({ dismissals: self.dismissals() });
+    };
+
+    self.dismissed = function(id) {
+      return self.dismissals.indexOf(id) !== -1;
+    };
+
+    chrome.storage.sync.get({ dismissals: [] }, function(result) {
+      self.dismissals(result.dismissals || []);
+    });
+  }
+
+  function OptionsCollection(initialState) {
+    var self = this;
+    var defaults = root.ExtensityStorage.getSyncDefaults();
+    var state = root.ExtensityStorage.mergeDefaults(defaults, initialState || {});
+    self.keys = Object.keys(defaults);
+
+    self.keys.forEach(function(key) {
+      self[key] = ko.observable(state[key]);
+    });
+
+    self.apply = function(nextState) {
+      var merged = root.ExtensityStorage.mergeDefaults(defaults, nextState || {});
+      self.keys.forEach(function(key) {
+        self[key](merged[key]);
+      });
+    };
+
+    self.toJS = function() {
+      return self.keys.reduce(function(result, key) {
+        result[key] = self[key]();
+        return result;
+      }, {});
+    };
+
+    self.save = function() {
+      return ExtensityApi.saveOptions(self.toJS());
+    };
+  }
+
+  var reservedNames = {
     "__always_on": "Always On",
     "__favorites": "Favorites"
   };
 
-  var icons = {
-    "__default": "fa-user-circle-o",
+  var reservedIcons = {
     "__always_on": "fa-lightbulb-o",
+    "__default": "fa-user-circle-o",
     "__favorites": "fa-star"
-  }
-
-  self.name = ko.observable(name);
-  self.items = ko.observableArray(items);
-
-  self.reserved = ko.computed(function() {
-    return self.name().startsWith("__");
-  });
-
-  self.hasItems = ko.computed(function() {
-    return self.items().length > 0;
-  });
-
-  self.short_name = ko.pureComputed(function() {
-    return reserved_names[self.name()] || _.str.prune(self.name(),30);
-  });
-
-  self.icon = ko.pureComputed(function() {
-    // console.log(icons["__default"]);
-    // return icons["__default"];
-    // console.log(icons[self.name()] || icons['__default']);
-    return (icons[self.name()] || icons['__default']);
-  });
-
-  self.contains = function(i) {
-    // Check if a given item is present in the profile list.
-    return _.contains(self.items(), i.id());
   };
 
-  return this;
-};
+  function ProfileModel(name, items) {
+    var self = this;
+    self.name = ko.observable(name);
+    self.items = ko.observableArray(root.ExtensityStorage.uniqueArray(items || []));
+    self.selected = ko.observable(false);
 
-var ProfileCollectionModel = function() {
-  var self = this;
-
-  self.items = ko.observableArray();
-  self.localProfiles = ko.observable(undefined).extend({persistable: "localProfiles"});
-
-  self.any = ko.computed(function() {
-    return self.items().length > 0;
-  });
-
-  self.add = function(name,items) {
-    items = items || [];
-    return self.items.push(new ProfileModel(name,items));
-  }
-
-  self.find = function(name) {
-    return _(self.items()).find(function(i) { return i.name() == name});
-  }
-
-  self.find_or_create = function(name) {
-    return self.find(name) || (new ProfileModel(name, []));
-  };
-
-  self.always_on = function() {
-    return self.find_or_create("__always_on");
-  };
-
-  self.favorites = function() {
-    return self.find_or_create("__favorites");
-  };
-
-  self.remove = function(profile) {
-    self.items.remove(profile);
-  }
-
-  self.exists = function(name) {
-    return !_(self.find(name)).isUndefined();
-  }
-
-  self.save = function(callback) {
-    var r = {};
-
-    _(self.items()).each(function(i) {
-      if (i.name()) {
-        r[i.name()] = _(i.items()).uniq();
-      }
+    self.reserved = ko.pureComputed(function() {
+      return self.name().indexOf("__") === 0;
     });
 
-    // Try sync storage first. If it fails, store the Profiles locally.
-    chrome.storage.sync.set({profiles: r}, function(val) {
-      if(chrome.runtime.lastError) {
-        self.localProfiles(true);
-        chrome.storage.local.set({profiles: r}, callback);
-      }
-      else {
-        self.localProfiles(false);
-        callback(val);
-      }
+    self.hasItems = ko.pureComputed(function() {
+      return self.items().length > 0;
     });
 
-  };
+    self.short_name = ko.pureComputed(function() {
+      return reservedNames[self.name()] || pruneText(self.name(), 30);
+    });
 
-  chrome.storage.sync.get("localProfiles", function(v) {
-    // Pull profiles from sync or local storage as appropriate.
-    var storage = (v.localProfiles) ? chrome.storage.local : chrome.storage.sync;
+    self.icon = ko.pureComputed(function() {
+      return reservedIcons[self.name()] || reservedIcons.__default;
+    });
 
-    var sortFn = function(el) {
-      // Add heading space to reserved profiles to sort at top.
-      return (el.startsWith("__") ? " " : "") + el.toUpperCase();
+    self.containsId = function(extensionId) {
+      return self.items.indexOf(extensionId) !== -1;
     };
 
-    storage.get("profiles", function(p) {
-      p = p['profiles'] || {};
-      var k = _(p).chain().keys().sortBy(sortFn).value();
-      _(k).each(function(name) {
-        self.items.push(new ProfileModel(name, p[name]));
-      });
-    });
-
-  })
-
-  return this;
-}
-
-var ExtensionModel = function(e) {
-  var self = this;
-
-  var item = e;
-
-  // Get the smallest available icon.
-  var smallestIcon = function(icons) {
-    var smallest = _(icons).chain().pluck('size').min().value();
-    var icon = _(icons).find({size: smallest});
-    return (icon && icon.url) || '';
-  };
-
-  self.id = ko.observable(item.id);
-  self.name = ko.observable(item.name);
-  self.type = item.type;
-  self.mayDisable = item.mayDisable;
-  self.isApp = ko.observable(item.isApp);
-  self.icon = smallestIcon(item.icons);
-  self.status = ko.observable(item.enabled);
-  self.optionsUrl = ko.observable(item.optionsUrl);
-  self.installType = ko.observable(item.installType);
-
-  self.disabled = ko.pureComputed(function() {
-    return !self.status();
-  });
-
-  self.is_development = ko.pureComputed(function() {
-    return self.installType() == 'development';
-  });
-
-  self.short_name = ko.computed(function() {
-    return _.str.prune(self.name(),40);
-  })
-
-  self.toggle = function() {
-    self.status(!self.status());
-  };
-
-  self.enable = function() {
-    self.status(true);
-  };
-
-  self.disable = function() {
-    self.status(false);
+    self.rename = function(nextName) {
+      var trimmed = (nextName || "").trim();
+      if (!trimmed) {
+        return;
+      }
+      self.name(trimmed);
+    };
   }
 
-  self.status.subscribe(function(value) {
-    chrome.management.setEnabled(self.id(), value);
-  });
+  function ProfileCollectionModel(initialState) {
+    var self = this;
+    self.items = ko.observableArray([]).extend({ countable: null });
+    self.localProfiles = ko.observable(false);
+    self.applyState(initialState || { items: [], localProfiles: false });
 
-};
+    self.add = function(name, items) {
+      var profile = new ProfileModel(name, items || []);
+      self.items.push(profile);
+      return profile;
+    };
 
-var ExtensionCollectionModel = function() {
-  var self = this;
-
-  self.items = ko.observableArray();
-
-  var typeFilter = function(types) {
-    var all = self.items(); res = [];
-    for (var i = 0; i < all.length; i++) {
-      if(_(types).includes(all[i].type)) { res.push(all[i]); }
-    }
-    return res;
-  };
-
-  self.extensions = ko.computed(function() {
-    return _(typeFilter(['extension'])).filter(function(i) { return i.mayDisable });
-  }).extend({pluckable: 'id', toggleable: null});
-
-  self.apps = ko.computed(function() {
-    return typeFilter(["hosted_app", "packaged_app", "legacy_packaged_app"]);
-  }).extend({pluckable: 'id', toggleable: null});
-
-  // Enabled extensions
-  self.enabled = ko.pureComputed(function() {
-    return _(self.extensions()).filter( function(i) { return i.status(); });
-  }).extend({pluckable: 'id', toggleable: null});
-
-  // Disabled extensions
-  self.disabled = ko.pureComputed(function() {
-    return _(self.extensions()).filter( function(i) { return !i.status(); });
-  }).extend({pluckable: 'id', toggleable: null});
-
-  // Find a single extension model by ud
-  self.find = function(id) {
-    return _(self.items()).find(function(i) { return i.id()==id });
-  };
-
-  // Initialize
-  chrome.management.getAll(function(results) {
-    _(results).chain()
-      .sortBy(function(i) { return i.name.toUpperCase(); })
-      .each(function(i){
-        if (i.name != "Extensity" && i.type != 'theme') {
-          self.items.push(new ExtensionModel(i));
-        }
+    self.find = function(name) {
+      return _(self.items()).find(function(profile) {
+        return profile.name() === name;
       });
-  });
+    };
 
-};
+    self.exists = function(name) {
+      return !!self.find(name);
+    };
+
+    self.remove = function(profile) {
+      self.items.remove(profile);
+    };
+
+    self.always_on = function() {
+      return self.find("__always_on");
+    };
+
+    self.favorites = function() {
+      return self.find("__favorites");
+    };
+
+    self.toMap = function() {
+      return self.items().reduce(function(result, profile) {
+        if (!profile.name()) {
+          return result;
+        }
+        result[profile.name()] = root.ExtensityStorage.uniqueArray(profile.items());
+        return result;
+      }, {});
+    };
+  }
+
+  ProfileCollectionModel.prototype.applyState = function(state) {
+    var self = this;
+    self.localProfiles(state && state.localProfiles ? true : false);
+    self.items((state && state.items ? state.items : []).map(function(profile) {
+      return new ProfileModel(profile.name, profile.items);
+    }));
+  };
+
+  function ExtensionModel(data) {
+    var self = this;
+    self.id = ko.observable("");
+    self.alias = ko.observable("");
+    self.name = ko.observable("");
+    self.description = ko.observable("");
+    self.type = ko.observable("extension");
+    self.mayDisable = ko.observable(true);
+    self.isApp = ko.observable(false);
+    self.icon = ko.observable("");
+    self.status = ko.observable(false);
+    self.optionsUrl = ko.observable("");
+    self.installType = ko.observable("");
+    self.usageCount = ko.observable(0);
+    self.lastUsed = ko.observable(0);
+    self.groupIds = ko.observableArray([]);
+    self.groupBadges = ko.observableArray([]);
+    self.alwaysOn = ko.observable(false);
+    self.favorite = ko.observable(false);
+    self.homepageUrl = ko.observable("");
+
+    self.disabled = ko.pureComputed(function() {
+      return !self.status();
+    });
+
+    self.is_development = ko.pureComputed(function() {
+      return self.installType() === "development";
+    });
+
+    self.displayName = ko.pureComputed(function() {
+      return self.alias() || self.name();
+    });
+
+    self.short_name = ko.pureComputed(function() {
+      return pruneText(self.displayName(), 40);
+    });
+
+    self.searchText = ko.pureComputed(function() {
+      return [
+        self.alias(),
+        self.name(),
+        self.description()
+      ].join(" ").toLowerCase();
+    });
+
+    self.applySnapshot(data || {});
+  }
+
+  ExtensionModel.prototype.applySnapshot = function(data) {
+    this.alias(data.alias || "");
+    this.alwaysOn(!!data.alwaysOn);
+    this.description(data.description || "");
+    this.favorite(!!data.favorite);
+    this.groupIds(data.groupIds || []);
+    this.groupBadges(data.groupBadges || []);
+    this.homepageUrl(data.homepageUrl || "");
+    this.icon(data.icon || "");
+    this.id(data.id || "");
+    this.installType(data.installType || "");
+    this.isApp(!!data.isApp);
+    this.lastUsed(data.lastUsed || 0);
+    this.mayDisable(typeof data.mayDisable === "boolean" ? data.mayDisable : true);
+    this.name(data.name || "");
+    this.optionsUrl(data.optionsUrl || "");
+    this.status(!!data.enabled);
+    this.type(data.type || "extension");
+    this.usageCount(data.usageCount || 0);
+  };
+
+  function ExtensionCollectionModel(initialItems) {
+    var self = this;
+    self.items = ko.observableArray([]).extend({ countable: null });
+
+    self.applyState(initialItems || []);
+
+    self.extensions = ko.pureComputed(function() {
+      return self.items().filter(function(item) {
+        return !item.isApp() && item.mayDisable();
+      });
+    }).extend({ countable: null });
+
+    self.apps = ko.pureComputed(function() {
+      return self.items().filter(function(item) {
+        return item.isApp();
+      });
+    }).extend({ countable: null });
+
+    self.enabled = ko.pureComputed(function() {
+      return self.extensions().filter(function(item) {
+        return item.status();
+      });
+    }).extend({ countable: null });
+
+    self.disabled = ko.pureComputed(function() {
+      return self.extensions().filter(function(item) {
+        return !item.status();
+      });
+    }).extend({ countable: null });
+  }
+
+  ExtensionCollectionModel.prototype.applyState = function(items) {
+    this.items((items || []).map(function(item) {
+      return new ExtensionModel(item);
+    }));
+  };
+
+  ExtensionCollectionModel.prototype.find = function(extensionId) {
+    return _(this.items()).find(function(item) {
+      return item.id() === extensionId;
+    });
+  };
+
+  var ExtensityApi = {
+    applyProfile: function(profileName) {
+      return chromeMessage({ profileName: profileName, type: "APPLY_PROFILE" });
+    },
+    exportBackup: function() {
+      return chromeMessage({ type: "EXPORT_BACKUP" });
+    },
+    getState: function() {
+      return chromeMessage({ type: "GET_STATE" });
+    },
+    importBackup: function(envelope) {
+      return chromeMessage({ envelope: envelope, type: "IMPORT_BACKUP" });
+    },
+    openDashboard: function() {
+      return chromeMessage({ type: "OPEN_DASHBOARD" });
+    },
+    saveAlias: function(extensionId, alias) {
+      return chromeMessage({
+        alias: alias,
+        extensionId: extensionId,
+        type: "SAVE_ALIAS"
+      });
+    },
+    saveAliases: function(aliases) {
+      return chromeMessage({
+        aliases: aliases,
+        type: "SAVE_ALIAS"
+      });
+    },
+    saveGroups: function(groups, groupOrder) {
+      return chromeMessage({
+        groupOrder: groupOrder,
+        groups: groups,
+        type: "SAVE_GROUPS"
+      });
+    },
+    saveOptions: function(options) {
+      return chromeMessage({ options: options, type: "SAVE_OPTIONS" });
+    },
+    saveUrlRules: function(urlRules) {
+      return chromeMessage({ type: "SAVE_URL_RULES", urlRules: urlRules });
+    },
+    setExtensionState: function(extensionId, enabled, context) {
+      return chromeMessage({
+        context: context,
+        enabled: enabled,
+        extensionId: extensionId,
+        type: "SET_EXTENSION_STATE"
+      });
+    },
+    syncDrive: function() {
+      return chromeMessage({ type: "SYNC_DRIVE" });
+    },
+    toggleAll: function() {
+      return chromeMessage({ type: "TOGGLE_ALL" });
+    },
+    undoLast: function() {
+      return chromeMessage({ type: "UNDO_LAST" });
+    }
+  };
+
+  root.DismissalsCollection = DismissalsCollection;
+  root.ExtensityApi = ExtensityApi;
+  root.ExtensityIO = {
+    downloadText: downloadText,
+    readFileAsText: readFileAsText
+  };
+  root.ExtensionCollectionModel = ExtensionCollectionModel;
+  root.ExtensionModel = ExtensionModel;
+  root.OptionsCollection = OptionsCollection;
+  root.ProfileCollectionModel = ProfileCollectionModel;
+  root.ProfileModel = ProfileModel;
+  root.fadeOutMessage = fadeOutMessage;
+})(window);

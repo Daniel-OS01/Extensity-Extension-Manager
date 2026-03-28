@@ -12,7 +12,10 @@ get rid of it for a little while. You can also launch Chrome Apps right from the
 * Turn all extensions off (and back on) with a single click.
 * Quick switch between several extensions groups using the Profiles feature.
 * Allow your most important extensions to be always enabled.
-* Keep computers in sync with Chrome Cloud Storage support.
+* Use aliases, groups, URL rules, reminders, and history from the full dashboard.
+* Import and export complete backups as JSON, or export the current extension list as CSV.
+* Switch between list and grid layouts, sort by name/popularity/recent use, and undo the last bulk action.
+* Keep lightweight settings in Chrome sync storage while larger state stays local.
 * Ideal companion for extensions collectors.
 
 Extensity is open source software. Full source code at GitHub https://github.com/sergiokas/Extensity
@@ -23,7 +26,26 @@ Website: [https://sergiokas.github.io/Extensity/](https://sergiokas.github.io/Ex
 
 Follow us in Twitter: [@ExtensityChrome](https://twitter.com/ExtensityChrome)
 
+### Build
+
+Install the local build tooling and create a distributable package with:
+
+```bash
+npm install
+make dist
+```
+
+This writes the packaged extension to `dist/dist.zip`.
+
 ### What's new:
+
+v2.0.0 (Mar 2026)
+- Added a service-worker-owned state pipeline for toggles, profiles, undo, imports, and URL rules.
+- Added popup list/grid view, alpha/popular/recent sorting, high-contrast mode, always-on badges, and undo.
+- Added the dashboard for aliases, groups, URL rules, history, and import/export workflows.
+- Added profile rename, bulk delete, layout controls, and static keyboard commands for toggle-all and profile cycling.
+- Added JSON backup/restore, CSV export, reminder scheduling, and event history logging.
+- Google Drive backup remains gated behind OAuth configuration and is not enabled in this build yet.
 
 v1.14.0 (Sep 2024)
 - **New Feature**: Dark Mode (based on system settings)

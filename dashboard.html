@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Extensity Dashboard</title>
+<link rel="stylesheet" type="text/css" href="styles/options.css" />
+<link rel="stylesheet" type="text/css" href="styles/dashboard.css" />
+<link rel="stylesheet" type="text/css" href="styles/font-awesome.min.css" />
+<script type="text/javascript" src="js/libs/underscore-min.js"></script>
+<script type="text/javascript" src="js/libs/knockout-3.5.1.js"></script>
+<script type="text/javascript" src="js/libs/knockout-secure-binding.min.js"></script>
+<script type="text/javascript" src="js/storage.js"></script>
+<script type="text/javascript" src="js/engine.js"></script>
+<script type="text/javascript" src="js/import-export.js"></script>
+<script type="text/javascript" src="js/dashboard.js"></script>
+</head>
+<body>
+<section id="dashboard-page">
+  <section id="header">
+    <div class="tabs">
+      <h1><img src="images/icon48.png" /> Extensity Dashboard</h1>
+      <div id="menu">
+        <a href="options.html">Options</a>
+        <a href="profiles.html">Profiles</a>
+        <a href="dashboard.html" class="selected">Dashboard</a>
+      </div>
+    </div>
+    <div class="help">
+      <i class="fa fa-table"></i> Use the dashboard for aliases, groups, URL rules, event history, and import/export.
+    </div>
+  </section>
+
+  <div class="clear"></div>
+
+  <section id="content">
+    <p class="status error" data-sbind="visible: error, text: error"></p>
+    <p class="status" data-sbind="visible: message, text: message"></p>
+
+    <div class="dashboard-tabs">
+      <button type="button" data-sbind="click: function(){ activeTab('history'); }, css:{selected: isTab('history')}">History</button>
+      <button type="button" data-sbind="click: function(){ activeTab('groups'); }, css:{selected: isTab('groups')}">Groups</button>
+      <button type="button" data-sbind="click: function(){ activeTab('rules'); }, css:{selected: isTab('rules')}">URL Rules</button>
+      <button type="button" data-sbind="click: function(){ activeTab('aliases'); }, css:{selected: isTab('aliases')}">Aliases</button>
+      <button type="button" data-sbind="click: function(){ activeTab('data'); }, css:{selected: isTab('data')}">Import / Export</button>
+    </div>
+
+    <section class="dashboard-section" data-sbind="visible: isTab('history')">
+      <h2>History</h2>
+      <ul class="history-list" data-sbind="foreach: historyRows">
+        <li>
+          <span class="event-name" data-sbind="text: extensionName"></span>
+          <span class="event-meta" data-sbind="text: triggeredBy"></span>
+          <span class="event-meta" data-sbind="text: $parent.formatHistoryDate(timestamp)"></span>
+        </li>
+      </ul>
+    </section>
+
+    <section class="dashboard-section" data-sbind="visible: isTab('groups')">
+      <h2>Groups</h2>
+      <button type="button" data-sbind="click: addGroup">Add group</button>
+      <div class="group-editor" data-sbind="foreach: groups">
+        <div class="card">
+          <div class="card-row">
+            <input type="text" placeholder="Group name" data-sbind="value: name" />
+            <input type="color" data-sbind="value: color" />
+            <button type="button" data-sbind="click: $parent.removeGroup">Remove</button>
+          </div>
+          <div class="extension-grid" data-sbind="foreach: $parent.extensions">
+            <label>
+              <input type="checkbox" data-sbind="checked: $parent.extensionIds, value: id" />
+              <span data-sbind="text: name"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="footer-actions"><button type="button" data-sbind="click: saveGroups">Save groups</button></div>
+    </section>
+
+    <section class="dashboard-section" data-sbind="visible: isTab('rules')">
+      <h2>URL Rules</h2>
+      <button type="button" data-sbind="click: addRule">Add rule</button>
+      <div class="rule-editor" data-sbind="foreach: rules">
+        <div class="card">
+          <div class="card-row">
+            <input type="text" placeholder="Rule name" data-sbind="value: name" />
+            <select data-sbind="value: matchMethod"><option value="wildcard">Wildcard</option><option value="regex">Regex</option></select>
+            <label><input type="checkbox" data-sbind="checked: active" /> Active</label>
+            <button type="button" data-sbind="click: $parent.removeRule">Remove</button>
+          </div>
+          <div class="card-row"><input type="text" placeholder="e.g. *://github.com/*" data-sbind="value: urlPattern" /></div>
+          <div class="rule-columns">
+            <div>
+              <h3>Enable on match</h3>
+              <div class="extension-grid" data-sbind="foreach: $parent.extensions">
+                <label>
+                  <input type="checkbox" data-sbind="checked: $parent.enableIds, value: id" />
+                  <span data-sbind="text: name"></span>
+                </label>
+              </div>
+            </div>
+            <div>
+              <h3>Disable on match</h3>
+              <div class="extension-grid" data-sbind="foreach: $parent.extensions">
+                <label>
+                  <input type="checkbox" data-sbind="checked: $parent.disableIds, value: id" />
+                  <span data-sbind="text: name"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="footer-actions"><button type="button" data-sbind="click: saveRules">Save URL rules</button></div>
+    </section>
+
+    <section class="dashboard-section" data-sbind="visible: isTab('aliases')">
+      <h2>Aliases</h2>
+      <div class="alias-list" data-sbind="foreach: aliasRows">
+        <div class="card-row">
+          <span class="alias-name" data-sbind="text: name"></span>
+          <input type="text" placeholder="Alias" data-sbind="value: alias" />
+        </div>
+      </div>
+      <div class="footer-actions"><button type="button" data-sbind="click: saveAliases">Save aliases</button></div>
+    </section>
+
+    <section class="dashboard-section" data-sbind="visible: isTab('data')">
+      <h2>Import / Export</h2>
+      <div class="footer-actions">
+        <button type="button" data-sbind="click: exportJson">Export JSON</button>
+        <button type="button" data-sbind="click: exportCsv">Export CSV</button>
+        <button type="button" data-sbind="click: syncDrive">Sync Drive</button>
+      </div>
+      <div class="field">
+        <label for="dashboard-import">Import JSON backup</label>
+        <input type="file" id="dashboard-import" accept=".json,application/json" data-sbind="event:{change: importJson}" />
+      </div>
+    </section>
+  </section>
+</section>
+</body>
+</html>

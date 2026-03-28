@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          cache: npm
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Validate manifest contract
+        run: npm run check:manifest
+
+      - name: Build distributable extension
+        run: make dist
+
+      - name: Build Chrome Web Store submission bundle
+        run: npm run bundle:chrome-store
+
+      - name: Upload distribution artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: extensity-dist
+          path: dist/dist.zip
+
+      - name: Upload Chrome Web Store submission bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: chrome-web-store-submission
+          path: artifacts/chrome-web-store/
