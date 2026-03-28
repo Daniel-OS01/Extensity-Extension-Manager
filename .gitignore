@@ -12,3 +12,4 @@ yarn-error.log*
 .agent/skills/*
 .agents/skills/*
 .claude/skills/*
+.claude/worktrees/
