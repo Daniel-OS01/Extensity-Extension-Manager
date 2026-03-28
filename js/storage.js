@@ -2,10 +2,13 @@
   var syncDefaults = {
     activeProfile: null,
     appsFirst: false,
+    colorScheme: "auto",
     contrastMode: "normal",
     driveSync: false,
+    dynamicSizing: false,
     enabledFirst: false,
     enableReminders: false,
+    fontSizePx: 12,
     groupApps: true,
     keepAlwaysOn: false,
     lastDriveSync: null,
@@ -18,6 +21,9 @@
     showAlwaysOnBadge: true,
     showHeader: true,
     showOptions: true,
+    itemPaddingPx: 10,
+    itemSpacingPx: 8,
+    popupWidthPx: 380,
     showReserved: false,
     sortMode: "alpha",
     viewMode: "list"

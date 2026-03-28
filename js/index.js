@@ -126,11 +126,26 @@ document.addEventListener("DOMContentLoaded", function() {
       if (self.opts.contrastMode() === "high") {
         classes.push("high-contrast");
       }
+      var scheme = self.opts.colorScheme();
+      if (scheme === "dark") { classes.push("dark-mode"); }
+      if (scheme === "light") { classes.push("light-mode"); }
       return classes.join(" ");
+    });
+
+    ko.computed(function() {
+      var style = document.documentElement.style;
+      style.setProperty("--font-size", self.opts.fontSizePx() + "px");
+      style.setProperty("--item-padding-v", self.opts.itemPaddingPx() + "px");
+      style.setProperty("--item-spacing", self.opts.itemSpacingPx() + "px");
+      style.setProperty("--popup-width", self.opts.popupWidthPx() + "px");
     });
 
     self.canUndo = ko.pureComputed(function() {
       return self.undoDepth() > 0;
+    });
+
+    self.viewToggleIcon = ko.pureComputed(function() {
+      return self.opts.viewMode() === "grid" ? "fa-list" : "fa-th-large";
     });
 
     self.applyState = function(state) {
@@ -140,6 +155,29 @@ document.addEventListener("DOMContentLoaded", function() {
       self.exts.applyState(state.extensions);
       self.switch.restoreList(state.localState.bulkToggleRestore || []);
       self.undoDepth((state.localState.undoStack || []).length);
+
+      // Mark active profile pill
+      self.profiles.items().forEach(function(profile) {
+        profile.isActive(profile.name() === state.options.activeProfile);
+      });
+
+      // Compute profile membership badges for each extension
+      var profileMap = {};
+      var colorIndex = 0;
+      self.profiles.items().forEach(function(profile) {
+        if (!profile.reserved()) {
+          var colorClass = "profile-color-" + (colorIndex % 5);
+          colorIndex += 1;
+          profile.items().forEach(function(extId) {
+            if (!profileMap[extId]) { profileMap[extId] = []; }
+            profileMap[extId].push({ name: profile.short_name(), colorClass: colorClass });
+          });
+        }
+      });
+      self.exts.items().forEach(function(ext) {
+        ext.profileBadges(profileMap[ext.id()] || []);
+      });
+
       document.body.className = self.bodyClass();
       self.loading(false);
       self.error("");
@@ -195,6 +233,10 @@ document.addEventListener("DOMContentLoaded", function() {
       nextOptions.sortMode = mode;
       self.performAction(ExtensityApi.saveOptions(nextOptions));
     };
+
+    self.setSortAlpha = function() { self.setSortMode("alpha"); };
+    self.setSortFrequency = function() { self.setSortMode("frequency"); };
+    self.setSortRecent = function() { self.setSortMode("recent"); };
 
     self.setProfile = function(profile) {
       self.performAction(ExtensityApi.applyProfile(profile.name()));

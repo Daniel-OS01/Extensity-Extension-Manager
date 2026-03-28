@@ -20,7 +20,7 @@
       <img src="images/icon48.png" width="16" height="16" /> Extensity
     </a>
     <a href="#" class="page" data-sbind="click: switch.undo, css:{disabled: !canUndo()}"><i class="fa fa-undo" title="Undo"></i></a>
-    <a href="#" class="page" data-sbind="click: toggleViewMode"><i class="fa" data-sbind="css: opts.viewMode() == 'grid' ? 'fa-list' : 'fa-th-large'" title="Toggle view"></i></a>
+    <a href="#" class="page" data-sbind="click: toggleViewMode"><i class="fa" data-sbind="css: viewToggleIcon" title="Toggle view"></i></a>
     <a href="#" class="page" data-sbind="click: openDashboard"><i class="fa fa-table" title="Open dashboard"></i></a>
     <a href="options.html" class="page" target="_blank"><i class="fa fa-cog" title="Options"></i></a>
     <a href="profiles.html" class="page" target="_blank"><i class="fa fa-user-circle-o" title="Profiles"></i></a>
@@ -31,9 +31,9 @@
 
 <section id="toolbar" class="main">
   <div class="sort-modes">
-    <button type="button" data-sbind="click: function(){ setSortMode('alpha'); }, css:{selected: opts.sortMode() == 'alpha'}">A-Z</button>
-    <button type="button" data-sbind="click: function(){ setSortMode('frequency'); }, css:{selected: opts.sortMode() == 'frequency'}">Popular</button>
-    <button type="button" data-sbind="click: function(){ setSortMode('recent'); }, css:{selected: opts.sortMode() == 'recent'}">Recent</button>
+    <button type="button" data-sbind="click: setSortAlpha, css:{selected: opts.sortMode() == 'alpha'}">A-Z</button>
+    <button type="button" data-sbind="click: setSortFrequency, css:{selected: opts.sortMode() == 'frequency'}">Popular</button>
+    <button type="button" data-sbind="click: setSortRecent, css:{selected: opts.sortMode() == 'recent'}">Recent</button>
   </div>
   <p class="error" data-sbind="visible: error, text: error"></p>
 </section>
@@ -46,13 +46,14 @@
   <section id="profiles" data-sbind="if: listedProfiles.any, visible: !search.q">
     <h1>Profiles</h1>
     <ul class="items" data-sbind="foreach: listedProfiles">
-      <li class="app keyboard-row" tabindex="0">
+      <li class="app keyboard-row" tabindex="0" data-sbind="css: {active: isActive()}">
         <div class="profile-row" data-sbind="click: $root.setProfile">
-          <i class="fa fa-check" data-sbind="visible: name() == $parent.activeProfile()"></i>
-          <i class="fa fa-lightbulb-o" data-sbind="visible: name() != $parent.activeProfile() && name() == '__always_on'"></i>
-          <i class="fa fa-star" data-sbind="visible: name() != $parent.activeProfile() && name() == '__favorites'"></i>
-          <i class="fa fa-user-circle-o" data-sbind="visible: name() != $parent.activeProfile() && !reserved()"></i>
+          <i class="fa fa-check" data-sbind="visible: isActive()"></i>
+          <i class="fa fa-lightbulb-o" data-sbind="visible: !isActive() && name() == '__always_on'"></i>
+          <i class="fa fa-star" data-sbind="visible: !isActive() && name() == '__favorites'"></i>
+          <i class="fa fa-user-circle-o" data-sbind="visible: !isActive() && !reserved()"></i>
           <span data-sbind="text: short_name"></span>
+          <span class="profile-count" data-sbind="text: itemCount"></span>
         </div>
       </li>
     </ul>
@@ -93,7 +94,7 @@
 
 <script type="text/html" id="item-template">
   <!-- ko if: !isApp() -->
-  <li class="extension keyboard-row" tabindex="0" data-sbind="click: $parent.toggleExtension, event:{keydown: function(d,e){ $parent.handleRowKeydown(d,e); }}, css:{disabled: disabled()}">
+  <li class="extension keyboard-row" tabindex="0" data-sbind="click: $parent.toggleExtension, event:{keydown: $parent.handleRowKeydown}, css:{disabled: disabled()}">
     <div class="item-main">
       <img width="16" height="16" data-sbind="attr:{src:icon}" />
       <div class="labels">
@@ -107,13 +108,16 @@
       </div>
     </div>
     <div class="item-actions">
+      <!-- ko foreach: profileBadges -->
+      <span class="badge profile-badge" data-sbind="text: name, css: colorClass"></span>
+      <!-- /ko -->
       <i class="fa fa-flask" title="Development" data-sbind="visible: is_development()"></i>
       <i class="fa fa-gear" title="Options" data-sbind="visible: $parent.opts.showOptions() && optionsUrl() && !disabled(), click: $parent.launchOptions, clickBubble: false"></i>
     </div>
   </li>
   <!-- /ko -->
   <!-- ko if: isApp() -->
-  <li class="app keyboard-row" tabindex="0" data-sbind="click: $parent.launchApp, event:{keydown: function(d,e){ $parent.handleRowKeydown(d,e); }}">
+  <li class="app keyboard-row" tabindex="0" data-sbind="click: $parent.launchApp, event:{keydown: $parent.handleRowKeydown}">
     <div class="item-main">
       <img width="16" height="16" data-sbind="attr:{src:icon}" />
       <div class="labels">

@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm test:*)",
+      "Bash(npm run:*)"
+    ]
+  },
+  "outputStyle": "default",
+  "prefersReducedMotion": true
+}

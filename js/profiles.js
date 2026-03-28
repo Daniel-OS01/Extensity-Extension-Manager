@@ -22,6 +22,14 @@ document.addEventListener("DOMContentLoaded", function() {
       return self.opts.profileDisplay() === "portrait" ? "profiles-portrait" : "profiles-landscape";
     });
 
+    self.bodyClass = ko.pureComputed(function() {
+      var classes = [self.layoutClass()];
+      var scheme = self.opts.colorScheme();
+      if (scheme === "dark") { classes.push("dark-mode"); }
+      if (scheme === "light") { classes.push("light-mode"); }
+      return classes.join(" ");
+    });
+
     self.selectedCount = ko.pureComputed(function() {
       return self.profiles.items().filter(function(profile) {
         return profile.selected() && !profile.reserved();
@@ -40,7 +48,7 @@ document.addEventListener("DOMContentLoaded", function() {
         self.current_profile(self.profiles.items()[0]);
       }
 
-      document.body.className = self.layoutClass();
+      document.body.className = self.bodyClass();
       self.loading(false);
       self.error("");
     };

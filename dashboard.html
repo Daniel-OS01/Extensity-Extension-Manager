@@ -36,11 +36,11 @@
     <p class="status" data-sbind="visible: message, text: message"></p>
 
     <div class="dashboard-tabs">
-      <button type="button" data-sbind="click: function(){ activeTab('history'); }, css:{selected: isTab('history')}">History</button>
-      <button type="button" data-sbind="click: function(){ activeTab('groups'); }, css:{selected: isTab('groups')}">Groups</button>
-      <button type="button" data-sbind="click: function(){ activeTab('rules'); }, css:{selected: isTab('rules')}">URL Rules</button>
-      <button type="button" data-sbind="click: function(){ activeTab('aliases'); }, css:{selected: isTab('aliases')}">Aliases</button>
-      <button type="button" data-sbind="click: function(){ activeTab('data'); }, css:{selected: isTab('data')}">Import / Export</button>
+      <button type="button" data-sbind="click: showTabHistory, css:{selected: isTab('history')}">History</button>
+      <button type="button" data-sbind="click: showTabGroups, css:{selected: isTab('groups')}">Groups</button>
+      <button type="button" data-sbind="click: showTabRules, css:{selected: isTab('rules')}">URL Rules</button>
+      <button type="button" data-sbind="click: showTabAliases, css:{selected: isTab('aliases')}">Aliases</button>
+      <button type="button" data-sbind="click: showTabData, css:{selected: isTab('data')}">Import / Export</button>
     </div>
 
     <section class="dashboard-section" data-sbind="visible: isTab('history')">

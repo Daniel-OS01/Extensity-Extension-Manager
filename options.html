@@ -54,6 +54,23 @@
       </fieldset>
 
       <fieldset class="settings-card">
+        <legend>Appearance</legend>
+        <div class="field"><label for="colorScheme">Color scheme</label><select id="colorScheme" data-sbind="value: options.colorScheme"><option value="auto">Auto (system)</option><option value="light">Light</option><option value="dark">Dark</option></select></div>
+        <div class="field"><label for="fontSizePx">Font size (px)</label><input type="number" min="8" max="20" id="fontSizePx" data-sbind="value: options.fontSizePx" /></div>
+        <div class="field"><label for="itemPaddingPx">Item padding (px)</label><input type="number" min="2" max="24" id="itemPaddingPx" data-sbind="value: options.itemPaddingPx" /></div>
+        <div class="field"><label for="itemSpacingPx">Item spacing (px)</label><input type="number" min="0" max="24" id="itemSpacingPx" data-sbind="value: options.itemSpacingPx" /></div>
+        <div class="field"><label for="popupWidthPx">Popup width (px)</label><input type="number" min="300" max="600" id="popupWidthPx" data-sbind="value: options.popupWidthPx" /></div>
+        <div class="field"><input type="checkbox" id="dynamicSizing" data-sbind="checked: options.dynamicSizing" /><label for="dynamicSizing">Dynamic sizing (adapts to screen)</label></div>
+        <div class="field"><label>Presets</label>
+          <div class="action-row">
+            <button type="button" data-sbind="click: applyPresetCompact">Compact</button>
+            <button type="button" data-sbind="click: applyPresetDefault">Default</button>
+            <button type="button" data-sbind="click: applyPresetComfortable">Comfortable</button>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="settings-card">
         <legend>Profiles &amp; Shortcuts</legend>
         <div class="field"><input type="checkbox" id="showReserved" data-sbind="checked: options.showReserved" /><label for="showReserved">Show reserved profiles in the popup</label></div>
         <div class="field"><input type="checkbox" id="keepAlwaysOn" data-sbind="checked: options.keepAlwaysOn" /><label for="keepAlwaysOn">Keep Always On extensions enabled when toggling all off</label></div>
