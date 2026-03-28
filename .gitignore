@@ -9,3 +9,6 @@ yarn-debug.log*
 yarn-error.log*
 .project
 .vscode
+.agent/skills/*
+.agents/skills/*
+.claude/skills/*

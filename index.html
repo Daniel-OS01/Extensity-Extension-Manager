@@ -46,13 +46,14 @@
   <section id="profiles" data-sbind="if: listedProfiles.any, visible: !search.q">
     <h1>Profiles</h1>
     <ul class="items" data-sbind="foreach: listedProfiles">
-      <li class="app keyboard-row" tabindex="0">
+      <li class="app keyboard-row" tabindex="0" data-sbind="css: {active: isActive()}">
         <div class="profile-row" data-sbind="click: $root.setProfile">
-          <i class="fa fa-check" data-sbind="visible: name() == $parent.activeProfile()"></i>
-          <i class="fa fa-lightbulb-o" data-sbind="visible: name() != $parent.activeProfile() && name() == '__always_on'"></i>
-          <i class="fa fa-star" data-sbind="visible: name() != $parent.activeProfile() && name() == '__favorites'"></i>
-          <i class="fa fa-user-circle-o" data-sbind="visible: name() != $parent.activeProfile() && !reserved()"></i>
+          <i class="fa fa-check" data-sbind="visible: isActive()"></i>
+          <i class="fa fa-lightbulb-o" data-sbind="visible: !isActive() && name() == '__always_on'"></i>
+          <i class="fa fa-star" data-sbind="visible: !isActive() && name() == '__favorites'"></i>
+          <i class="fa fa-user-circle-o" data-sbind="visible: !isActive() && !reserved()"></i>
           <span data-sbind="text: short_name"></span>
+          <span class="profile-count" data-sbind="text: itemCount"></span>
         </div>
       </li>
     </ul>
@@ -107,6 +108,9 @@
       </div>
     </div>
     <div class="item-actions">
+      <!-- ko foreach: profileBadges -->
+      <span class="badge profile-badge" data-sbind="text: name, css: colorClass"></span>
+      <!-- /ko -->
       <i class="fa fa-flask" title="Development" data-sbind="visible: is_development()"></i>
       <i class="fa fa-gear" title="Options" data-sbind="visible: $parent.opts.showOptions() && optionsUrl() && !disabled(), click: $parent.launchOptions, clickBubble: false"></i>
     </div>

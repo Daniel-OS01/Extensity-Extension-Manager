@@ -92,10 +92,60 @@ That means:
 
 ## Recommended Manual Test Pass Before Release
 
-- load the unpacked extension in Chrome
-- open the popup and verify list/grid mode, sort mode, alias display, and undo
-- edit profiles and confirm rename, selection, and bulk delete behavior
-- open the dashboard and verify aliases, groups, URL rules, import/export, and history
-- validate reminder alarms and notifications
-- validate keyboard shortcuts from `chrome://extensions/shortcuts`
-- build and inspect the generated `dist/dist.zip` and `artifacts/chrome-web-store/`
+Load the unpacked extension in Chrome and verify each surface:
+
+### Popup (`index.html`)
+
+- list/grid mode toggle works
+- alpha, popular, and recent sort modes work
+- search filters by name, alias, and description (with fuzzy matching for 3+ character queries)
+- extension toggle enables and disables correctly
+- undo reverts the last toggle or bulk action
+- profile pills appear as a horizontal strip; clicking a profile applies it
+- active profile pill is highlighted
+- profile membership badges appear on the right of each extension row
+- extensions with multiple profile memberships show multiple badges in different colors
+- dark mode: header, toolbar, sort buttons, search bar, and all inputs use dark surfaces
+
+### Options page (`options.html`)
+
+- all checkboxes save and reload correctly
+- number inputs for font size, item padding, item spacing, and popup width apply immediately in the popup after save
+- preset buttons (Compact, Default, Comfortable) write the correct pixel values
+- color scheme toggle (Auto/Light/Dark) applies across all pages
+- dark mode: input and select fields use dark background (not white)
+- export JSON and export CSV produce downloadable files
+- import JSON backup restores settings and profiles
+
+### Profiles page (`profiles.html`)
+
+- profile list shows on the right, extension checklist on the left (landscape mode)
+- adding a new profile captures the current enabled-extension set
+- inline rename works; reserved profiles cannot be renamed
+- bulk delete removes selected user profiles
+- extension checklist sorts by A-Z, Popular, Recent, and Profiles count
+- always-on and favorites reserved profiles are accessible
+- save persists the profile set; quota error is shown if sync storage is exceeded
+
+### Dashboard (`dashboard.html`)
+
+- clicking each tab (History, Groups, URL Rules, Aliases, Import/Export) shows only that section
+- history list shows records with event type badge, extension name, source, and timestamp
+- adding, editing, and removing groups works; save persists changes
+- adding, editing, and removing URL rules works; save persists changes
+- aliases can be set per extension; save persists changes
+- export JSON and import JSON round-trip correctly
+- dark mode: section headings, grid cards, and history rows use dark surfaces
+
+### Background behavior
+
+- URL rules apply when navigating to matching URLs
+- reminder alarms fire for extensions enabled beyond the configured delay
+- keyboard shortcuts from `chrome://extensions/shortcuts` trigger toggle-all and profile cycling
+
+### Build verification
+
+- `npm test` passes all 5 unit tests
+- `npm run check:manifest` reports `manifest_ok`
+- `make dist` produces a valid `dist/dist.zip`
+- `npm run bundle:chrome-store` produces the submission bundle under `artifacts/chrome-web-store/`

@@ -1,4 +1,25 @@
 document.addEventListener("DOMContentLoaded", function() {
+  function exportFilename(prefix, ext) {
+    var d = new Date();
+    var dd = String(d.getDate()).padStart(2, "0");
+    var mm = String(d.getMonth() + 1).padStart(2, "0");
+    var yyyy = d.getFullYear();
+    return prefix + "-" + dd + "-" + mm + "-" + yyyy + "." + ext;
+  }
+
+  function applyThemeClasses(options) {
+    document.body.classList.toggle("dark-mode", options.colorScheme === "dark");
+    document.body.classList.toggle("light-mode", options.colorScheme === "light");
+  }
+
+  function applyCssVars(options) {
+    var style = document.documentElement.style;
+    style.setProperty("--font-size", (options.fontSizePx || 12) + "px");
+    style.setProperty("--item-padding-v", (options.itemPaddingPx || 10) + "px");
+    style.setProperty("--item-spacing", (options.itemSpacingPx || 8) + "px");
+    style.setProperty("--popup-width", (options.popupWidthPx || 380) + "px");
+  }
+
   function GroupEditor(group) {
     var self = this;
     self.id = ko.observable(group.id || ExtensityStorage.makeId("group"));
@@ -70,6 +91,8 @@ document.addEventListener("DOMContentLoaded", function() {
       var groupOrder = state.localState.groupOrder || [];
       var groups = state.localState.groups || {};
       self.options.apply(state.options);
+      applyThemeClasses(state.options);
+      applyCssVars(state.options);
       self.extensions(state.extensions.filter(function(extension) {
         return !extension.isApp;
       }));
@@ -170,7 +193,7 @@ document.addEventListener("DOMContentLoaded", function() {
     self.exportJson = function() {
       self.performAction(ExtensityApi.exportBackup()).then(function(payload) {
         ExtensityIO.downloadText(
-          "extensity-backup.json",
+          exportFilename("extensity-plus-backup", "json"),
           JSON.stringify(payload.envelope, null, 2),
           "application/json;charset=utf-8"
         );
@@ -180,7 +203,7 @@ document.addEventListener("DOMContentLoaded", function() {
     self.exportCsv = function() {
       self.performAction(ExtensityApi.getState()).then(function(payload) {
         var csv = ExtensityImportExport.buildExtensionsCsv(payload.state.extensions);
-        ExtensityIO.downloadText("extensity-extensions.csv", csv, "text/csv;charset=utf-8");
+        ExtensityIO.downloadText(exportFilename("extensity-extensions", "csv"), csv, "text/csv;charset=utf-8");
       }).catch(function() {});
     };
 

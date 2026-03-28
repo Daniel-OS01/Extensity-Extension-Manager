@@ -1,3 +1,31 @@
+@media (prefers-color-scheme: dark) {
+  body:not(.light-mode) {
+    --accent: #6b9fd4;
+    --accent-soft: #1e2e45;
+    --border: #2a3a4f;
+    --danger: #e07070;
+    --muted: #8a9ab0;
+    --panel: #1a2234;
+    --shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
+    --surface: #141924;
+    background: linear-gradient(180deg, #141924 0%, #0f1520 100%);
+    color: #d0dce8;
+  }
+}
+
+body.dark-mode {
+  --accent: #6b9fd4;
+  --accent-soft: #1e2e45;
+  --border: #2a3a4f;
+  --danger: #e07070;
+  --muted: #8a9ab0;
+  --panel: #1a2234;
+  --shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
+  --surface: #141924;
+  background: linear-gradient(180deg, #141924 0%, #0f1520 100%);
+  color: #d0dce8;
+}
+
 #dashboard-page .dashboard-tabs {
   display: flex;
   flex-wrap: wrap;

@@ -8,17 +8,21 @@ body {
   --muted: #5c6c7c;
   --panel: #ffffff;
   --surface: #f7f9fc;
+  --sp-md: 10px;
+  --header-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(244, 248, 253, 0.96) 100%);
+  --btn-bg: rgba(255, 255, 255, 0.92);
+  --input-bg: rgba(255, 255, 255, 0.92);
   background: linear-gradient(180deg, #f8fbff 0%, #eef3f9 100%);
   color: #16212f;
   font-family: "Lucida Grande", Arial, sans-serif;
-  font-size: 12px;
+  font-size: var(--font-size, 12px);
   margin: 0;
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
   padding: 0;
   user-select: none;
-  width: 480px;
+  width: var(--popup-width, 380px);
 }
 
 body.high-contrast {
@@ -30,8 +34,44 @@ body.high-contrast {
   --muted: #2e3f52;
 }
 
+@media (prefers-color-scheme: dark) {
+  body:not(.light-mode) {
+    --accent: #6b9fd4;
+    --accent-soft: #1e3148;
+    --border: #2d3d52;
+    --border-strong: #4a6380;
+    --danger: #e07070;
+    --disabled-bg: #1e2530;
+    --muted: #8a9ab0;
+    --panel: #1a2234;
+    --surface: #141924;
+    --header-bg: linear-gradient(180deg, #1c2540 0%, #141924 100%);
+    --btn-bg: rgba(30, 45, 70, 0.85);
+    --input-bg: rgba(26, 34, 52, 0.95);
+    background: linear-gradient(180deg, #141924 0%, #0f1520 100%);
+    color: #d8e4f0;
+  }
+}
+
+body.dark-mode {
+  --accent: #6b9fd4;
+  --accent-soft: #1e3148;
+  --border: #2d3d52;
+  --border-strong: #4a6380;
+  --danger: #e07070;
+  --disabled-bg: #1e2530;
+  --muted: #8a9ab0;
+  --panel: #1a2234;
+  --surface: #141924;
+  --header-bg: linear-gradient(180deg, #1c2540 0%, #141924 100%);
+  --btn-bg: rgba(30, 45, 70, 0.85);
+  --input-bg: rgba(26, 34, 52, 0.95);
+  background: linear-gradient(180deg, #141924 0%, #0f1520 100%);
+  color: #d8e4f0;
+}
+
 body.grid-view {
-  width: 500px;
+  width: var(--popup-width-grid, 420px);
 }
 
 a {
@@ -53,7 +93,7 @@ select {
 
 #header {
   align-items: center;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(244, 248, 253, 0.96) 100%);
+  background: var(--header-bg);
   border-bottom: 1px solid rgba(139, 162, 191, 0.35);
   display: flex;
   gap: 10px;
@@ -90,7 +130,7 @@ select {
 #header a.page,
 #header a.switch {
   align-items: center;
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--btn-bg);
   border: 1px solid rgba(139, 162, 191, 0.45);
   border-radius: 999px;
   color: var(--muted);
@@ -132,7 +172,7 @@ select {
 }
 
 .sort-modes button {
-  background: rgba(255, 255, 255, 0.85);
+  background: var(--btn-bg);
   border: 1px solid var(--border);
   border-radius: 999px;
   color: var(--muted);
@@ -161,7 +201,7 @@ select {
 
 #search p {
   align-items: center;
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--input-bg);
   border: 1px solid rgba(139, 162, 191, 0.45);
   border-radius: 12px;
   box-shadow: 0 10px 24px rgba(28, 49, 76, 0.08);
@@ -184,11 +224,11 @@ select {
 }
 
 #content {
-  padding-bottom: 12px;
+  padding-bottom: var(--sp-md);
 }
 
 #content > section {
-  margin-bottom: 12px;
+  margin-bottom: var(--sp-md);
 }
 
 #content h1 {
@@ -200,6 +240,63 @@ select {
   text-transform: uppercase;
 }
 
+/* Profiles: compact horizontal pill strip */
+#profiles {
+  margin-bottom: var(--sp-md);
+}
+
+#profiles h1 {
+  font-size: 10px;
+}
+
+#profiles ul.items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+#profiles ul.items li {
+  background: var(--accent-soft);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  box-shadow: none;
+  margin-bottom: 0;
+  min-height: unset;
+  padding: 4px 10px;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+#profiles ul.items li:hover,
+#profiles ul.items li.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+#profiles ul.items li .profile-row {
+  gap: 5px;
+}
+
+#profiles ul.items li .profile-row i.fa {
+  font-size: 10px;
+}
+
+#profiles ul.items li .profile-row span {
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.profile-count {
+  color: var(--muted);
+  font-size: 0.85em;
+  font-weight: normal;
+  opacity: 0.75;
+}
+
+/* Extension items */
 ul.items {
   list-style: none;
   margin: 0;
@@ -213,9 +310,9 @@ ul.items li {
   box-shadow: 0 10px 28px rgba(31, 53, 79, 0.08);
   box-sizing: border-box;
   cursor: pointer;
-  margin-bottom: 8px;
+  margin-bottom: var(--item-spacing, 8px);
   min-height: 44px;
-  padding: 10px 12px;
+  padding: var(--item-padding-v, 10px) 12px;
   transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
 }
 
@@ -249,6 +346,11 @@ ul.items li.disabled img {
   color: var(--accent);
   min-width: 16px;
   text-align: center;
+}
+
+#profiles ul.items li.active .profile-row i.fa,
+#profiles ul.items li:hover .profile-row i.fa {
+  color: #fff;
 }
 
 .profile-row span {
@@ -309,12 +411,32 @@ ul.items li.disabled img {
   color: var(--accent);
 }
 
+/* Profile membership badges (right side of each extension item) */
+.badge.profile-badge {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  color: inherit;
+  font-size: 10px;
+  font-weight: normal;
+  text-transform: none;
+}
+
+.badge.profile-badge.profile-color-0 { border-left-color: #4a90d9; }
+.badge.profile-badge.profile-color-1 { border-left-color: #7c4ad9; }
+.badge.profile-badge.profile-color-2 { border-left-color: #2aad7c; }
+.badge.profile-badge.profile-color-3 { border-left-color: #d9924a; }
+.badge.profile-badge.profile-color-4 { border-left-color: #d94a7c; }
+
 .item-actions {
   align-items: center;
   color: var(--muted);
   display: flex;
   flex: 0 0 auto;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+  max-width: 50%;
 }
 
 .item-actions .fa-gear:hover {
@@ -322,7 +444,7 @@ ul.items li.disabled img {
 }
 
 .empty {
-  background: rgba(255, 255, 255, 0.8);
+  background: var(--input-bg);
   border: 1px dashed var(--border);
   border-radius: 14px;
   color: var(--muted);
@@ -350,5 +472,6 @@ body.grid-view #content > section:not(#profiles) > ul.items > li .item-main {
 
 body.grid-view #content > section:not(#profiles) > ul.items > li .item-actions {
   justify-content: flex-end;
+  max-width: none;
   width: 100%;
 }

@@ -154,6 +154,12 @@
       return self.items().length > 0;
     });
 
+    self.itemCount = ko.pureComputed(function() {
+      return self.items().length;
+    });
+
+    self.isActive = ko.observable(false);
+
     self.short_name = ko.pureComputed(function() {
       return reservedNames[self.name()] || pruneText(self.name(), 30);
     });
@@ -248,6 +254,7 @@
     self.alwaysOn = ko.observable(false);
     self.favorite = ko.observable(false);
     self.homepageUrl = ko.observable("");
+    self.profileBadges = ko.observableArray([]);
 
     self.disabled = ko.pureComputed(function() {
       return !self.status();
