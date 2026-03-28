@@ -48,6 +48,58 @@ document.addEventListener("DOMContentLoaded", function() {
     }
   }
 
+  function chromeCall(target, method, args) {
+    return new Promise(function(resolve, reject) {
+      var finalArgs = (args || []).slice();
+      finalArgs.push(function(result) {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+          return;
+        }
+        resolve(result);
+      });
+      target[method].apply(target, finalArgs);
+    });
+  }
+
+  function openTab(url) {
+    return chromeCall(chrome.tabs, "create", [{ active: true, url: url }]);
+  }
+
+  function buildManageExtensionUrl(extensionId) {
+    return "chrome://extensions/?id=" + encodeURIComponent(extensionId);
+  }
+
+  function buildPermissionsPageUrl(extensionId) {
+    return buildManageExtensionUrl(extensionId) + "#permissions";
+  }
+
+  function copyText(value) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(value);
+    }
+
+    return new Promise(function(resolve, reject) {
+      var input = document.createElement("textarea");
+      input.value = value;
+      input.setAttribute("readonly", "readonly");
+      input.style.position = "fixed";
+      input.style.opacity = "0";
+      document.body.appendChild(input);
+      input.select();
+      try {
+        if (!document.execCommand("copy")) {
+          throw new Error("Copy command failed.");
+        }
+        resolve();
+      } catch (error) {
+        reject(error);
+      } finally {
+        document.body.removeChild(input);
+      }
+    });
+  }
+
   function SearchViewModel() {
     var self = this;
     self.q = ko.observable("");
@@ -118,11 +170,15 @@ document.addEventListener("DOMContentLoaded", function() {
     self.search = new SearchViewModel();
     self.switch = new SwitchViewModel(self);
     self.activeProfile = ko.observable(null);
+    self.expandedExtensionId = ko.observable(null);
     self.undoDepth = ko.observable(0);
 
     self.bodyClass = ko.pureComputed(function() {
       var classes = [];
       classes.push(self.opts.viewMode() === "grid" ? "grid-view" : "list-view");
+      if (self.opts.viewMode() === "list") {
+        classes.push("popup-list-style-" + self.opts.popupListStyle());
+      }
       if (self.opts.contrastMode() === "high") {
         classes.push("high-contrast");
       }
@@ -132,10 +188,16 @@ document.addEventListener("DOMContentLoaded", function() {
       return classes.join(" ");
     });
 
+    self.isCompactPopupList = ko.pureComputed(function() {
+      return self.opts.viewMode() === "list" && self.opts.popupListStyle() === "compact";
+    });
+
     ko.computed(function() {
       var style = document.documentElement.style;
       style.setProperty("--font-size", self.opts.fontSizePx() + "px");
       style.setProperty("--item-padding-v", self.opts.itemPaddingPx() + "px");
+      style.setProperty("--item-padding-x", self.opts.itemPaddingXPx() + "px");
+      style.setProperty("--item-name-gap", self.opts.itemNameGapPx() + "px");
       style.setProperty("--item-spacing", self.opts.itemSpacingPx() + "px");
       style.setProperty("--popup-width", self.opts.popupWidthPx() + "px");
     });
@@ -164,19 +226,35 @@ document.addEventListener("DOMContentLoaded", function() {
       // Compute profile membership badges for each extension
       var profileMap = {};
       var colorIndex = 0;
+      var badgeMode = self.opts.popupProfileBadgeTextMode();
+      var singleWordChars = self.opts.popupProfileBadgeSingleWordChars();
       self.profiles.items().forEach(function(profile) {
         if (!profile.reserved()) {
           var colorClass = "profile-color-" + (colorIndex % 5);
           colorIndex += 1;
           profile.items().forEach(function(extId) {
             if (!profileMap[extId]) { profileMap[extId] = []; }
-            profileMap[extId].push({ name: profile.short_name(), colorClass: colorClass });
+            profileMap[extId].push({
+              colorClass: colorClass,
+              name: ExtensityPopupLabels.formatProfileBadgeLabel(profile.name(), badgeMode, singleWordChars)
+            });
           });
         }
       });
       self.exts.items().forEach(function(ext) {
-        ext.profileBadges(profileMap[ext.id()] || []);
+        var badges = (profileMap[ext.id()] || []).slice();
+        if (self.opts.showAlwaysOnBadge() && ext.alwaysOn()) {
+          badges.unshift({
+            colorClass: "always-on-badge",
+            name: ExtensityPopupLabels.formatProfileBadgeLabel("__always_on", badgeMode, singleWordChars)
+          });
+        }
+        ext.profileBadges(badges);
       });
+
+      if (self.expandedExtensionId() && !self.exts.find(self.expandedExtensionId())) {
+        self.expandedExtensionId(null);
+      }
 
       document.body.className = self.bodyClass();
       self.loading(false);
@@ -219,7 +297,98 @@ document.addEventListener("DOMContentLoaded", function() {
     };
 
     self.launchOptions = function(extension) {
-      chrome.tabs.create({ active: true, url: extension.optionsUrl() });
+      return openTab(extension.optionsUrl());
+    };
+
+    self.isRowExpanded = function(extensionId) {
+      return self.expandedExtensionId() === extensionId;
+    };
+
+    self.ensureExtensionMetadata = function(extension) {
+      if (extension.metadataLoading() || extension.metadataFetchedAt()) {
+        return Promise.resolve();
+      }
+
+      extension.metadataLoading(true);
+      return ExtensityApi.getExtensionMetadata([extension.id()]).then(function(payload) {
+        var metadata = payload.metadata && payload.metadata[extension.id()];
+        if (metadata) {
+          extension.applyMetadata(metadata);
+          return;
+        }
+        extension.metadataLoading(false);
+      }).catch(function(error) {
+        extension.metadataLoading(false);
+        throw error;
+      });
+    };
+
+    self.toggleCompactRow = function(extension) {
+      var nextId = self.isRowExpanded(extension.id()) ? null : extension.id();
+      self.expandedExtensionId(nextId);
+      if (nextId) {
+        self.ensureExtensionMetadata(extension).catch(function(error) {
+          self.error(error.message);
+        });
+      }
+    };
+
+    self.toggleCompactExtension = function(extension) {
+      self.performAction(ExtensityApi.setExtensionState(extension.id(), !extension.status(), {
+        source: "manual"
+      }));
+    };
+
+    self.toggleCompactCheckbox = function(extension) {
+      self.toggleCompactExtension(extension);
+      return false;
+    };
+
+    self.openManagePage = function(extension) {
+      return openTab(buildManageExtensionUrl(extension.id())).catch(function(error) {
+        self.error(error.message);
+      });
+    };
+
+    self.openPermissionsPage = function(extension) {
+      return openTab(buildPermissionsPageUrl(extension.id())).catch(function() {
+        return openTab(buildManageExtensionUrl(extension.id()));
+      }).catch(function(error) {
+        self.error(error.message);
+      });
+    };
+
+    self.canCopyLink = function(extension) {
+      return !!extension.copyLinkUrl();
+    };
+
+    self.copyExtensionLink = function(extension) {
+      if (!self.canCopyLink(extension)) {
+        return;
+      }
+      copyText(extension.copyLinkUrl()).catch(function(error) {
+        self.error(error.message);
+      });
+    };
+
+    self.openChromeWebStore = function(extension) {
+      if (!extension.storeLinkAvailable()) {
+        return;
+      }
+      openTab(extension.storeUrl()).catch(function(error) {
+        self.error(error.message);
+      });
+    };
+
+    self.canRemoveExtension = function(extension) {
+      return extension.installType() !== "admin";
+    };
+
+    self.removeExtension = function(extension) {
+      if (!self.canRemoveExtension(extension)) {
+        return;
+      }
+      self.performAction(ExtensityApi.uninstallExtension(extension.id()));
     };
 
     self.toggleViewMode = function() {
@@ -271,6 +440,19 @@ document.addEventListener("DOMContentLoaded", function() {
         self.toggleExtension(item);
       }
       event.preventDefault();
+    };
+
+    self.handleCompactRowKeydown = function(item, event) {
+      if (event.key === "ArrowDown") {
+        focusSiblingRow(event.currentTarget, 1);
+        event.preventDefault();
+        return;
+      }
+
+      if (event.key === "ArrowUp") {
+        focusSiblingRow(event.currentTarget, -1);
+        event.preventDefault();
+      }
     };
 
     self.filterProfile = function(profile) {

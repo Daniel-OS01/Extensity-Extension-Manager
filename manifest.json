@@ -29,6 +29,9 @@
     "tabs",
     "webNavigation"
   ],
+  "host_permissions": [
+    "https://chromewebstore.google.com/*"
+  ],
   "optional_permissions": [
     "identity"
   ],

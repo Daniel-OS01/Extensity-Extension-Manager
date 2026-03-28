@@ -140,6 +140,63 @@
     "__favorites": "fa-star"
   };
 
+  function clampInteger(value, fallback, min, max) {
+    var parsed = parseInt(value, 10);
+    if (!isFinite(parsed)) {
+      parsed = fallback;
+    }
+    return Math.min(max, Math.max(min, parsed));
+  }
+
+  function firstDescriptionLine(value) {
+    return String(value || "")
+      .split(/\r?\n/)
+      .map(function(line) {
+        return line.trim();
+      })
+      .filter(Boolean)[0] || "";
+  }
+
+  function isChromeWebStoreUrl(value) {
+    return /^https:\/\/(?:chromewebstore\.google\.com|chrome\.google\.com\/webstore)\//i.test(String(value || ""));
+  }
+
+  function defaultCategoryForInstallType(installType) {
+    return installType === "development" ? "Developer" : "Uncategorized";
+  }
+
+  function profileDisplayName(name) {
+    return reservedNames[name] || (name == null ? "" : String(name));
+  }
+
+  function compactProfileBadgeLabel(displayName, singleWordChars) {
+    var words = String(displayName || "").trim().split(/\s+/).filter(Boolean);
+    if (words.length === 0) {
+      return "";
+    }
+
+    if (words.length === 1) {
+      return words[0].slice(0, clampInteger(singleWordChars, 4, 1, 8));
+    }
+
+    return words.map(function(word) {
+      return word.charAt(0).toUpperCase();
+    }).join("");
+  }
+
+  function formatPopupProfileBadgeLabel(profileName, mode, singleWordChars) {
+    var displayName = profileDisplayName(profileName);
+    if (mode === "compact") {
+      return compactProfileBadgeLabel(displayName, singleWordChars);
+    }
+
+    if (reservedNames[profileName]) {
+      return reservedNames[profileName];
+    }
+
+    return pruneText(displayName, 30);
+  }
+
   function ProfileModel(name, items) {
     var self = this;
     self.name = ko.observable(name);
@@ -239,7 +296,10 @@
     self.id = ko.observable("");
     self.alias = ko.observable("");
     self.name = ko.observable("");
+    self.version = ko.observable("");
     self.description = ko.observable("");
+    self.descriptionLine = ko.observable("");
+    self.category = ko.observable("");
     self.type = ko.observable("extension");
     self.mayDisable = ko.observable(true);
     self.isApp = ko.observable(false);
@@ -254,6 +314,10 @@
     self.alwaysOn = ko.observable(false);
     self.favorite = ko.observable(false);
     self.homepageUrl = ko.observable("");
+    self.storeUrl = ko.observable("");
+    self.metadataFetchedAt = ko.observable(0);
+    self.metadataLoading = ko.observable(false);
+    self.metadataSource = ko.observable("");
     self.profileBadges = ko.observableArray([]);
 
     self.disabled = ko.pureComputed(function() {
@@ -280,6 +344,25 @@
       ].join(" ").toLowerCase();
     });
 
+    self.profileSummary = ko.pureComputed(function() {
+      var pieces = [];
+      if (self.descriptionLine()) {
+        pieces.push(self.descriptionLine());
+      }
+      if (self.category()) {
+        pieces.push(self.category());
+      }
+      return pieces.join(" - ");
+    });
+
+    self.copyLinkUrl = ko.pureComputed(function() {
+      return self.homepageUrl() || self.storeUrl() || "";
+    });
+
+    self.storeLinkAvailable = ko.pureComputed(function() {
+      return !!self.storeUrl();
+    });
+
     self.applySnapshot(data || {});
   }
 
@@ -302,6 +385,31 @@
     this.status(!!data.enabled);
     this.type(data.type || "extension");
     this.usageCount(data.usageCount || 0);
+    this.version(data.version || "");
+    this.descriptionLine(firstDescriptionLine(data.descriptionLine || data.description || ""));
+    this.category(data.category || defaultCategoryForInstallType(data.installType));
+    this.storeUrl(
+      data.storeUrl || (isChromeWebStoreUrl(data.homepageUrl) ? data.homepageUrl : "")
+    );
+    this.metadataFetchedAt(data.metadataFetchedAt || 0);
+    this.metadataLoading(false);
+    this.metadataSource(data.metadataSource || "");
+  };
+
+  ExtensionModel.prototype.applyMetadata = function(metadata) {
+    var payload = metadata || {};
+    if (payload.descriptionLine) {
+      this.descriptionLine(firstDescriptionLine(payload.descriptionLine));
+    }
+    if (payload.category) {
+      this.category(payload.category);
+    }
+    if (payload.storeUrl) {
+      this.storeUrl(payload.storeUrl);
+    }
+    this.metadataFetchedAt(payload.fetchedAt || Date.now());
+    this.metadataLoading(false);
+    this.metadataSource(payload.source || "fallback");
   };
 
   function ExtensionCollectionModel(initialItems) {
@@ -357,6 +465,12 @@
     getState: function() {
       return chromeMessage({ type: "GET_STATE" });
     },
+    getExtensionMetadata: function(extensionIds) {
+      return chromeMessage({
+        extensionIds: extensionIds,
+        type: "GET_EXTENSION_METADATA"
+      });
+    },
     importBackup: function(envelope) {
       return chromeMessage({ envelope: envelope, type: "IMPORT_BACKUP" });
     },
@@ -405,6 +519,12 @@
     },
     undoLast: function() {
       return chromeMessage({ type: "UNDO_LAST" });
+    },
+    uninstallExtension: function(extensionId) {
+      return chromeMessage({
+        extensionId: extensionId,
+        type: "UNINSTALL_EXTENSION"
+      });
     }
   };
 
@@ -419,5 +539,13 @@
   root.OptionsCollection = OptionsCollection;
   root.ProfileCollectionModel = ProfileCollectionModel;
   root.ProfileModel = ProfileModel;
+  root.ExtensityPopupLabels = {
+    formatProfileBadgeLabel: formatPopupProfileBadgeLabel
+  };
+  root.ExtensityExtensionMetadata = {
+    defaultCategoryForInstallType: defaultCategoryForInstallType,
+    firstDescriptionLine: firstDescriptionLine,
+    isChromeWebStoreUrl: isChromeWebStoreUrl
+  };
   root.fadeOutMessage = fadeOutMessage;
 })(window);

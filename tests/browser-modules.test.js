@@ -1,4 +1,5 @@
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
 
@@ -33,9 +34,206 @@ function loadModule(relativePath, extraGlobals = {}) {
   });
 }
 
+function createChromeBackgroundStub() {
+  return {
+    alarms: {
+      clear() {},
+      create() {},
+      onAlarm: { addListener() {} }
+    },
+    commands: {
+      onCommand: { addListener() {} }
+    },
+    contextMenus: {
+      create() {},
+      onClicked: { addListener() {} },
+      removeAll() {}
+    },
+    management: {},
+    notifications: {
+      clear() {},
+      create() {}
+    },
+    runtime: {
+      getManifest() {
+        return { version: "2.0.0" };
+      },
+      id: "runtime-extension",
+      lastError: null,
+      onInstalled: { addListener() {} },
+      onMessage: { addListener() {} },
+      onStartup: { addListener() {} }
+    },
+    tabs: {
+      create() {},
+      get() {},
+      onActivated: { addListener() {} },
+      onUpdated: { addListener() {} },
+      query() {},
+      sendMessage() {}
+    },
+    webNavigation: {
+      onHistoryStateUpdated: { addListener() {} }
+    }
+  };
+}
+
+function loadBackgroundModule(extraSelf = {}) {
+  return loadBrowserScript(path.join(repoRoot, "js/background.js"), {
+    chrome: createChromeBackgroundStub(),
+    fetch: async function() {
+      throw new Error("Unexpected fetch in unit test.");
+    },
+    importScripts() {},
+    self: {
+      ExtensityDriveSync: {},
+      ExtensityHistory: {},
+      ExtensityImportExport: {},
+      ExtensityMigrations: {
+        migrateLegacyLocalStorage: async function() {
+          return false;
+        },
+        migratePopupListStyle: async function() {
+          return false;
+        },
+        migrateTo2_0_0: async function() {
+          return false;
+        }
+      },
+      ExtensityReminders: {},
+      ExtensityStorage: {
+        clone(value) {
+          return JSON.parse(JSON.stringify(value));
+        },
+        uniqueArray(items) {
+          return Array.from(new Set(items || []));
+        },
+        ...extraSelf.ExtensityStorage
+      },
+      ExtensityUrlRules: {},
+      ...extraSelf
+    }
+  });
+}
+
 function normalize(value) {
   return JSON.parse(JSON.stringify(value));
 }
+
+test("storage sync defaults expose popup and profile display settings", () => {
+  const root = loadModule("js/storage.js");
+  const defaults = root.ExtensityStorage.getSyncDefaults();
+  const localDefaults = root.ExtensityStorage.getLocalDefaults();
+
+  assert.equal(defaults.itemPaddingXPx, 12);
+  assert.equal(defaults.itemNameGapPx, 10);
+  assert.equal(defaults.popupListStyle, "card");
+  assert.equal(defaults.profileDisplay, "landscape");
+  assert.equal(defaults.profileNameDirection, "auto");
+  assert.equal(defaults.popupProfileBadgeTextMode, "full");
+  assert.equal(defaults.popupProfileBadgeSingleWordChars, 4);
+  assert.equal(defaults.showPopupVersionChips, true);
+  assert.equal(defaults.showProfilesExtensionMetadata, true);
+  assert.deepEqual(normalize(localDefaults.webStoreMetadata), {});
+});
+
+test("popup profile badge labels support full and compact formatting", () => {
+  const root = {};
+  loadBrowserScript(path.join(repoRoot, "js/engine.js"), {
+    ko: { extenders: {} },
+    window: root
+  });
+
+  assert.equal(root.ExtensityPopupLabels.formatProfileBadgeLabel("__always_on", "compact", 4), "AO");
+  assert.equal(root.ExtensityPopupLabels.formatProfileBadgeLabel("Bookmark Organization", "compact", 4), "BO");
+  assert.equal(root.ExtensityPopupLabels.formatProfileBadgeLabel("Testing", "compact", 4), "Test");
+  assert.equal(root.ExtensityPopupLabels.formatProfileBadgeLabel("Bookmark Organization", "full", 4), "Bookmark Organization");
+});
+
+test("popup list style migration maps legacy flatPopupList to popupListStyle", async () => {
+  let removed = null;
+  let savedPatch = null;
+
+  const root = loadBrowserScript(path.join(repoRoot, "js/migration.js"), {
+    self: {
+      ExtensityStorage: {
+        ensureSyncDefaults: async function() {},
+        getArea: async function() {
+          return {
+            flatPopupList: true,
+            migration_popupListStyle: null,
+            popupListStyle: "card"
+          };
+        },
+        removeArea: async function(area, keys) {
+          removed = { area: area, keys: keys };
+        },
+        saveSyncOptions: async function(values) {
+          savedPatch = values;
+        }
+      }
+    }
+  });
+
+  const changed = await root.ExtensityMigrations.migratePopupListStyle();
+
+  assert.equal(changed, true);
+  assert.deepEqual(normalize(savedPatch), {
+    migration_popupListStyle: "2.1.0",
+    popupListStyle: "flat"
+  });
+  assert.deepEqual(normalize(removed), {
+    area: "sync",
+    keys: ["flatPopupList"]
+  });
+});
+
+test("background parser extracts Web Store description, category, and canonical url", () => {
+  const fixture = fs.readFileSync(path.join(repoRoot, "tests", "fixtures", "chrome-web-store-dark-reader.html"), "utf8");
+  const root = loadBackgroundModule();
+  const parsed = root.ExtensityBackground.parseChromeWebStoreHtml(
+    fixture,
+    "https://chromewebstore.google.com/detail/extension/eimadpbcbfnmbkopoojfekhnkhdbieeh"
+  );
+
+  assert.equal(parsed.descriptionLine, "Dark mode for every website. Take care of your eyes, use dark theme for night and daily browsing.");
+  assert.equal(parsed.category, "Accessibility");
+  assert.equal(parsed.storeUrl, "https://chromewebstore.google.com/detail/dark-reader/eimadpbcbfnmbkopoojfekhnkhdbieeh");
+});
+
+test("background normalization keeps managed extension version", () => {
+  const root = loadBackgroundModule();
+  const normalized = root.ExtensityBackground.normalizeExtensions([
+    {
+      description: "Sample description",
+      enabled: true,
+      homepageUrl: "",
+      icons: [{ size: 16, url: "icon.png" }],
+      id: "ext-1",
+      installType: "normal",
+      mayDisable: true,
+      name: "Example Extension",
+      optionsUrl: "",
+      type: "extension",
+      version: "4.9.121"
+    }
+  ], {
+    localState: {
+      aliases: {},
+      groups: {},
+      recentlyUsed: [],
+      usageCounters: {}
+    },
+    profiles: {
+      map: {
+        __always_on: [],
+        __favorites: []
+      }
+    }
+  });
+
+  assert.equal(normalized[0].version, "4.9.121");
+});
 
 test("import/export builds a versioned backup envelope", () => {
   const root = loadModule("js/import-export.js");

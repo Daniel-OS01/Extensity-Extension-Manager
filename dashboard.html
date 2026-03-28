@@ -36,17 +36,18 @@
     <p class="status" data-sbind="visible: message, text: message"></p>
 
     <div class="dashboard-tabs">
-      <button type="button" data-sbind="click: showTabHistory, css:{selected: isTab('history')}">History</button>
-      <button type="button" data-sbind="click: showTabGroups, css:{selected: isTab('groups')}">Groups</button>
-      <button type="button" data-sbind="click: showTabRules, css:{selected: isTab('rules')}">URL Rules</button>
-      <button type="button" data-sbind="click: showTabAliases, css:{selected: isTab('aliases')}">Aliases</button>
-      <button type="button" data-sbind="click: showTabData, css:{selected: isTab('data')}">Import / Export</button>
+      <button type="button" data-sbind="click: showTabHistory, css:{selected: historyTab}">History</button>
+      <button type="button" data-sbind="click: showTabGroups, css:{selected: groupsTab}">Groups</button>
+      <button type="button" data-sbind="click: showTabRules, css:{selected: rulesTab}">URL Rules</button>
+      <button type="button" data-sbind="click: showTabAliases, css:{selected: aliasesTab}">Aliases</button>
+      <button type="button" data-sbind="click: showTabData, css:{selected: dataTab}">Import / Export</button>
     </div>
 
-    <section class="dashboard-section" data-sbind="visible: isTab('history')">
+    <section class="dashboard-section" data-sbind="visible: historyTab">
       <h2>History</h2>
       <ul class="history-list" data-sbind="foreach: historyRows">
         <li>
+          <span data-sbind="attr:{class: $parent.eventBadgeClass(event)}, text: event"></span>
           <span class="event-name" data-sbind="text: extensionName"></span>
           <span class="event-meta" data-sbind="text: triggeredBy"></span>
           <span class="event-meta" data-sbind="text: $parent.formatHistoryDate(timestamp)"></span>
@@ -54,7 +55,7 @@
       </ul>
     </section>
 
-    <section class="dashboard-section" data-sbind="visible: isTab('groups')">
+    <section class="dashboard-section" data-sbind="visible: groupsTab">
       <h2>Groups</h2>
       <button type="button" data-sbind="click: addGroup">Add group</button>
       <div class="group-editor" data-sbind="foreach: groups">
@@ -75,7 +76,7 @@
       <div class="footer-actions"><button type="button" data-sbind="click: saveGroups">Save groups</button></div>
     </section>
 
-    <section class="dashboard-section" data-sbind="visible: isTab('rules')">
+    <section class="dashboard-section" data-sbind="visible: rulesTab">
       <h2>URL Rules</h2>
       <button type="button" data-sbind="click: addRule">Add rule</button>
       <div class="rule-editor" data-sbind="foreach: rules">
@@ -112,7 +113,7 @@
       <div class="footer-actions"><button type="button" data-sbind="click: saveRules">Save URL rules</button></div>
     </section>
 
-    <section class="dashboard-section" data-sbind="visible: isTab('aliases')">
+    <section class="dashboard-section" data-sbind="visible: aliasesTab">
       <h2>Aliases</h2>
       <div class="alias-list" data-sbind="foreach: aliasRows">
         <div class="card-row">
@@ -123,7 +124,7 @@
       <div class="footer-actions"><button type="button" data-sbind="click: saveAliases">Save aliases</button></div>
     </section>
 
-    <section class="dashboard-section" data-sbind="visible: isTab('data')">
+    <section class="dashboard-section" data-sbind="visible: dataTab">
       <h2>Import / Export</h2>
       <div class="footer-actions">
         <button type="button" data-sbind="click: exportJson">Export JSON</button>

@@ -94,13 +94,13 @@
 
 <script type="text/html" id="item-template">
   <!-- ko if: !isApp() -->
+  <!-- ko if: !$parent.isCompactPopupList() -->
   <li class="extension keyboard-row" tabindex="0" data-sbind="click: $parent.toggleExtension, event:{keydown: $parent.handleRowKeydown}, css:{disabled: disabled()}">
     <div class="item-main">
       <img width="16" height="16" data-sbind="attr:{src:icon}" />
       <div class="labels">
         <span class="name" data-sbind="text: short_name"></span>
-        <div class="badges">
-          <span class="badge always-on" data-sbind="visible: $parent.opts.showAlwaysOnBadge() && alwaysOn()">Always On</span>
+        <div class="badges" data-sbind="visible: groupBadges().length">
           <!-- ko foreach: groupBadges -->
           <span class="badge group" data-sbind="text: name"></span>
           <!-- /ko -->
@@ -113,6 +113,42 @@
       <!-- /ko -->
       <i class="fa fa-flask" title="Development" data-sbind="visible: is_development()"></i>
       <i class="fa fa-gear" title="Options" data-sbind="visible: $parent.opts.showOptions() && optionsUrl() && !disabled(), click: $parent.launchOptions, clickBubble: false"></i>
+    </div>
+  </li>
+  <!-- /ko -->
+  <!-- ko if: $parent.isCompactPopupList() -->
+  <li class="extension keyboard-row compact-row" tabindex="0" data-sbind="event:{keydown: $parent.handleCompactRowKeydown}, css:{disabled: disabled(), expanded: $parent.isRowExpanded(id())}">
+    <div class="compact-row-main">
+      <label class="compact-row-toggle" data-sbind="attr:{for:'compact-toggle-' + id()}">
+        <input type="checkbox" data-sbind="attr:{id:'compact-toggle-' + id()}, checked: status, click: function(){ return $parent.toggleCompactCheckbox($data); }, clickBubble: false" />
+      </label>
+      <img width="16" height="16" data-sbind="attr:{src:icon}" />
+      <div class="compact-row-labels">
+        <div class="compact-row-title">
+          <span class="name" data-sbind="text: short_name"></span>
+          <span class="version-chip" data-sbind="visible: $parent.opts.showPopupVersionChips() && version(), text: version"></span>
+          <i class="fa fa-flask" title="Development" data-sbind="visible: is_development()"></i>
+        </div>
+      </div>
+      <div class="compact-row-side">
+        <div class="item-actions compact-row-badges">
+          <!-- ko foreach: profileBadges -->
+          <span class="badge profile-badge" data-sbind="text: name, css: colorClass"></span>
+          <!-- /ko -->
+        </div>
+        <button type="button" class="compact-row-chevron" title="Toggle actions" data-sbind="click: $parent.toggleCompactRow, clickBubble: false, css:{expanded: $parent.isRowExpanded(id())}, attr:{'aria-expanded': $parent.isRowExpanded(id()) ? 'true' : 'false'}">
+          <i class="fa fa-chevron-down"></i>
+        </button>
+      </div>
+    </div>
+    <div class="compact-action-strip" data-sbind="visible: $parent.isRowExpanded(id())">
+      <button type="button" class="compact-action-button" data-sbind="click: $parent.toggleCompactExtension, clickBubble: false, text: status() ? 'Disable' : 'Enable'"></button>
+      <button type="button" class="compact-action-button" data-sbind="visible: optionsUrl(), click: $parent.launchOptions, clickBubble: false">Options Page</button>
+      <button type="button" class="compact-action-button" data-sbind="click: $parent.openManagePage, clickBubble: false">Manage Extension Page</button>
+      <button type="button" class="compact-action-button" data-sbind="click: $parent.openPermissionsPage, clickBubble: false">Permissions Page</button>
+      <button type="button" class="compact-action-button" data-sbind="click: $parent.copyExtensionLink, clickBubble: false, enable: $parent.canCopyLink($data)">Copy Link</button>
+      <button type="button" class="compact-action-button" data-sbind="click: $parent.openChromeWebStore, clickBubble: false, enable: storeLinkAvailable()">Open in Chrome Web Store</button>
+      <button type="button" class="compact-action-button danger" data-sbind="visible: $parent.canRemoveExtension($data), click: $parent.removeExtension, clickBubble: false">Remove Extension</button>
     </div>
   </li>
   <!-- /ko -->

@@ -48,21 +48,28 @@
       <fieldset class="settings-card">
         <legend>View &amp; Sorting</legend>
         <div class="field"><label for="viewMode">Default popup view</label><select id="viewMode" data-sbind="value: options.viewMode"><option value="list">List</option><option value="grid">Grid</option></select></div>
+        <div class="field"><label for="popupListStyle">Popup list style</label><select id="popupListStyle" data-sbind="value: options.popupListStyle"><option value="card">Card</option><option value="flat">Flat</option><option value="compact">Compact rows</option></select></div>
         <div class="field"><label for="sortMode">Default popup sort</label><select id="sortMode" data-sbind="value: options.sortMode"><option value="alpha">A-Z</option><option value="frequency">Popular</option><option value="recent">Recent</option></select></div>
         <div class="field"><label for="contrastMode">Contrast mode</label><select id="contrastMode" data-sbind="value: options.contrastMode"><option value="normal">Normal</option><option value="high">High contrast</option></select></div>
         <div class="field"><input type="checkbox" id="showAlwaysOnBadge" data-sbind="checked: options.showAlwaysOnBadge" /><label for="showAlwaysOnBadge">Show Always On badge</label></div>
+        <div class="field"><input type="checkbox" id="showPopupVersionChips" data-sbind="checked: options.showPopupVersionChips" /><label for="showPopupVersionChips">Show popup version chips</label></div>
       </fieldset>
 
       <fieldset class="settings-card">
         <legend>Appearance</legend>
         <div class="field"><label for="colorScheme">Color scheme</label><select id="colorScheme" data-sbind="value: options.colorScheme"><option value="auto">Auto (system)</option><option value="light">Light</option><option value="dark">Dark</option></select></div>
         <div class="field"><label for="fontSizePx">Font size (px)</label><input type="number" min="8" max="20" id="fontSizePx" data-sbind="value: options.fontSizePx" /></div>
-        <div class="field"><label for="itemPaddingPx">Item padding (px)</label><input type="number" min="2" max="24" id="itemPaddingPx" data-sbind="value: options.itemPaddingPx" /></div>
+        <div class="field"><label for="itemPaddingPx">Item padding (px)</label><input type="number" min="0" max="24" id="itemPaddingPx" data-sbind="value: options.itemPaddingPx" /></div>
+        <div class="field"><label for="itemPaddingXPx">Item horizontal padding (px)</label><input type="number" min="0" max="32" id="itemPaddingXPx" data-sbind="value: options.itemPaddingXPx" /></div>
         <div class="field"><label for="itemSpacingPx">Item spacing (px)</label><input type="number" min="0" max="24" id="itemSpacingPx" data-sbind="value: options.itemSpacingPx" /></div>
+        <div class="field"><label for="itemNameGapPx">Icon/name gap (px)</label><input type="number" min="0" max="24" id="itemNameGapPx" data-sbind="value: options.itemNameGapPx" /></div>
         <div class="field"><label for="popupWidthPx">Popup width (px)</label><input type="number" min="300" max="600" id="popupWidthPx" data-sbind="value: options.popupWidthPx" /></div>
+        <div class="field"><label for="popupProfileBadgeTextMode">Popup profile badge labels</label><select id="popupProfileBadgeTextMode" data-sbind="value: options.popupProfileBadgeTextMode"><option value="full">Full</option><option value="compact">Compact</option></select></div>
+        <div class="field"><label for="popupProfileBadgeSingleWordChars">Single-word compact badge length</label><input type="number" min="1" max="8" id="popupProfileBadgeSingleWordChars" data-sbind="value: options.popupProfileBadgeSingleWordChars, enable: options.popupProfileBadgeTextMode() == 'compact'" /></div>
         <div class="field"><input type="checkbox" id="dynamicSizing" data-sbind="checked: options.dynamicSizing" /><label for="dynamicSizing">Dynamic sizing (adapts to screen)</label></div>
         <div class="field"><label>Presets</label>
           <div class="action-row">
+            <button type="button" data-sbind="click: applyPresetNone">None</button>
             <button type="button" data-sbind="click: applyPresetCompact">Compact</button>
             <button type="button" data-sbind="click: applyPresetDefault">Default</button>
             <button type="button" data-sbind="click: applyPresetComfortable">Comfortable</button>
@@ -75,6 +82,8 @@
         <div class="field"><input type="checkbox" id="showReserved" data-sbind="checked: options.showReserved" /><label for="showReserved">Show reserved profiles in the popup</label></div>
         <div class="field"><input type="checkbox" id="keepAlwaysOn" data-sbind="checked: options.keepAlwaysOn" /><label for="keepAlwaysOn">Keep Always On extensions enabled when toggling all off</label></div>
         <div class="field"><label for="profileDisplay">Profiles page layout</label><select id="profileDisplay" data-sbind="value: options.profileDisplay"><option value="landscape">Landscape</option><option value="portrait">Portrait</option></select></div>
+        <div class="field"><label for="profileNameDirection">Profiles page direction</label><select id="profileNameDirection" data-sbind="value: options.profileNameDirection"><option value="auto">Auto</option><option value="ltr">LTR</option><option value="rtl">RTL</option></select></div>
+        <div class="field"><input type="checkbox" id="showProfilesExtensionMetadata" data-sbind="checked: options.showProfilesExtensionMetadata" /><label for="showProfilesExtensionMetadata">Show extension descriptions and categories on Profiles page</label></div>
         <div class="field action-row"><button type="button" data-sbind="click: openShortcutSettings">Open keyboard shortcuts</button></div>
       </fieldset>
 

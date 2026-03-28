@@ -96,8 +96,36 @@
     return true;
   }
 
+  async function migratePopupListStyle() {
+    await storage.ensureSyncDefaults();
+    var syncValues = await storage.getArea("sync", [
+      "flatPopupList",
+      "migration_popupListStyle",
+      "popupListStyle"
+    ]);
+
+    if (syncValues.migration_popupListStyle) {
+      return false;
+    }
+
+    var patch = {
+      migration_popupListStyle: "2.1.0"
+    };
+
+    if (syncValues.flatPopupList === true && (!syncValues.popupListStyle || syncValues.popupListStyle === "card")) {
+      patch.popupListStyle = "flat";
+    }
+
+    await storage.saveSyncOptions(patch);
+    if (typeof syncValues.flatPopupList !== "undefined") {
+      await storage.removeArea("sync", ["flatPopupList"]);
+    }
+    return true;
+  }
+
   root.ExtensityMigrations = {
     migrateLegacyLocalStorage: migrateLegacyLocalStorage,
+    migratePopupListStyle: migratePopupListStyle,
     migrateTo2_0_0: migrateTo2_0_0
   };
 })(typeof window !== "undefined" ? window : self);

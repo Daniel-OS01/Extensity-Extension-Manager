@@ -17,6 +17,7 @@ importScripts(
   var reminders = root.ExtensityReminders;
   var driveSync = root.ExtensityDriveSync;
   var urlEvaluationTimers = {};
+  var metadataCacheTtlMs = 7 * 24 * 60 * 60 * 1000;
 
   function chromeCall(target, method, args) {
     return new Promise(function(resolve, reject) {
@@ -137,6 +138,162 @@ importScripts(
     };
   }
 
+  function firstDescriptionLine(value) {
+    return String(value || "")
+      .split(/\r?\n/)
+      .map(function(line) {
+        return line.trim();
+      })
+      .filter(Boolean)[0] || "";
+  }
+
+  function defaultCategoryForInstallType(installType) {
+    return installType === "development" ? "Developer" : "Uncategorized";
+  }
+
+  function decodeHtmlEntities(value) {
+    return String(value || "")
+      .replace(/&quot;/g, "\"")
+      .replace(/&#39;/g, "'")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&#(\d+);/g, function(match, code) {
+        var parsed = parseInt(code, 10);
+        return isFinite(parsed) ? String.fromCharCode(parsed) : match;
+      });
+  }
+
+  function buildGenericStoreUrl(extensionId) {
+    return "https://chromewebstore.google.com/detail/extension/" + extensionId;
+  }
+
+  function normalizeStoreUrl(value) {
+    if (!value) {
+      return "";
+    }
+    if (/^https:\/\/chromewebstore\.google\.com\//i.test(value)) {
+      return value;
+    }
+    if (/^https:\/\/chrome\.google\.com\/webstore\//i.test(value)) {
+      return value.replace("https://chrome.google.com/webstore/", "https://chromewebstore.google.com/");
+    }
+    return "";
+  }
+
+  function isFreshMetadata(entry) {
+    return !!entry && !!entry.fetchedAt && (Date.now() - entry.fetchedAt) < metadataCacheTtlMs;
+  }
+
+  function buildFallbackMetadata(item) {
+    return {
+      category: defaultCategoryForInstallType(item.installType),
+      descriptionLine: firstDescriptionLine(item.description || ""),
+      fetchedAt: Date.now(),
+      source: "fallback",
+      storeUrl: normalizeStoreUrl(item.homepageUrl || "")
+    };
+  }
+
+  function parseChromeWebStoreHtml(html, requestUrl) {
+    var canonicalMatch = html.match(/<link rel="canonical" href="([^"]+)"/i);
+    var descriptionMatch = html.match(/<meta[^>]+name="description"[^>]+content="([^"]+)"/i)
+      || html.match(/<meta[^>]+property="og:description"[^>]+content="([^"]+)"/i);
+    var categoryMatch = html.match(/href="\.\/category\/extensions"[^>]*>[^<]+<\/a>\s*<a[^>]+href="\.\/category\/extensions\/[^"]+"[^>]*>([^<]+)<\/a>\s*[\d,.]+\s*users/i)
+      || html.match(/href="\.\/category\/[^"]+\/[^"]+"[^>]*>([^<]+)<\/a>\s*[\d,.]+\s*users/i);
+
+    return {
+      category: decodeHtmlEntities(categoryMatch ? categoryMatch[1].trim() : ""),
+      descriptionLine: firstDescriptionLine(decodeHtmlEntities(descriptionMatch ? descriptionMatch[1] : "")),
+      fetchedAt: Date.now(),
+      source: "store",
+      storeUrl: normalizeStoreUrl(canonicalMatch ? canonicalMatch[1] : requestUrl)
+    };
+  }
+
+  async function fetchChromeWebStoreMetadata(item) {
+    var requestUrl = buildGenericStoreUrl(item.id);
+    var response = await fetch(requestUrl);
+    if (!response.ok) {
+      throw new Error("Store metadata fetch failed: " + response.status);
+    }
+
+    var html = await response.text();
+    var parsed = parseChromeWebStoreHtml(html, requestUrl);
+    if (!parsed.descriptionLine && !parsed.category && !parsed.storeUrl) {
+      throw new Error("Store metadata parse failed.");
+    }
+    return parsed;
+  }
+
+  async function loadExtensionMetadata(extensionIds) {
+    var requestedIds = storage.uniqueArray(extensionIds || []);
+    if (!requestedIds.length) {
+      return {};
+    }
+
+    var localState = await storage.loadLocalState();
+    var cache = storage.clone(localState.webStoreMetadata || {});
+    var items = await getAllManagementItems();
+    var itemMap = items.reduce(function(result, item) {
+      result[item.id] = item;
+      return result;
+    }, {});
+    var metadataMap = {};
+    var cacheUpdated = false;
+
+    for (var index = 0; index < requestedIds.length; index += 1) {
+      var extensionId = requestedIds[index];
+      var item = itemMap[extensionId];
+      if (!item) {
+        continue;
+      }
+
+      var fallback = buildFallbackMetadata(item);
+      var cached = cache[extensionId];
+      if (isFreshMetadata(cached)) {
+        metadataMap[extensionId] = {
+          category: cached.category || fallback.category,
+          descriptionLine: cached.descriptionLine || fallback.descriptionLine,
+          fetchedAt: cached.fetchedAt,
+          source: cached.source || "fallback",
+          storeUrl: cached.storeUrl || fallback.storeUrl
+        };
+        continue;
+      }
+
+      var nextMetadata;
+      if (item.installType === "development" || item.type !== "extension") {
+        nextMetadata = fallback;
+      } else {
+        try {
+          nextMetadata = fetchChromeWebStoreMetadata(item).then(function(parsed) {
+            return {
+              category: parsed.category || fallback.category,
+              descriptionLine: parsed.descriptionLine || fallback.descriptionLine,
+              fetchedAt: parsed.fetchedAt,
+              source: parsed.source,
+              storeUrl: parsed.storeUrl || fallback.storeUrl
+            };
+          });
+          nextMetadata = await nextMetadata;
+        } catch (error) {
+          nextMetadata = fallback;
+        }
+      }
+
+      cache[extensionId] = nextMetadata;
+      metadataMap[extensionId] = nextMetadata;
+      cacheUpdated = true;
+    }
+
+    if (cacheUpdated) {
+      await storage.saveLocalState({ webStoreMetadata: cache });
+    }
+
+    return metadataMap;
+  }
+
   async function getAllManagementItems() {
     var items = await chromeCall(chrome.management, "getAll", []);
     return filterManagedItems(items);
@@ -144,6 +301,10 @@ importScripts(
 
   async function setExtensionEnabled(extensionId, enabled) {
     await chromeCall(chrome.management, "setEnabled", [extensionId, enabled]);
+  }
+
+  async function uninstallExtension(extensionId) {
+    await chromeCall(chrome.management, "uninstall", [extensionId]);
   }
 
   async function createTab(url) {
@@ -215,16 +376,23 @@ importScripts(
         name: item.name,
         optionsUrl: item.optionsUrl || "",
         type: item.type,
-        usageCount: counters[item.id] || 0
+        usageCount: counters[item.id] || 0,
+        version: item.version || ""
       };
     });
+  }
+
+  function buildPublicLocalState(localState) {
+    var nextState = storage.clone(localState || {});
+    delete nextState.webStoreMetadata;
+    return nextState;
   }
 
   async function buildState() {
     var context = await loadContext();
     return {
       extensions: normalizeExtensions(context.items, context),
-      localState: context.localState,
+      localState: buildPublicLocalState(context.localState),
       metadata: {
         version: chrome.runtime.getManifest().version
       },
@@ -519,6 +687,17 @@ importScripts(
     };
   }
 
+  async function getExtensionMetadataPayload(payload) {
+    return {
+      metadata: await loadExtensionMetadata(payload.extensionIds || [])
+    };
+  }
+
+  async function runUninstallExtension(extensionId) {
+    await uninstallExtension(extensionId);
+    return buildState();
+  }
+
   async function syncDriveNow() {
     return {
       result: await driveSync.syncDrive()
@@ -599,6 +778,8 @@ importScripts(
         return { state: await runApplyProfile(message.profileName) };
       case "EXPORT_BACKUP":
         return await exportBackup();
+      case "GET_EXTENSION_METADATA":
+        return await getExtensionMetadataPayload(message);
       case "GET_STATE":
         return { state: await buildState() };
       case "IMPORT_BACKUP":
@@ -630,6 +811,8 @@ importScripts(
         return { state: await runToggleAll() };
       case "UNDO_LAST":
         return { state: await runUndo() };
+      case "UNINSTALL_EXTENSION":
+        return { state: await runUninstallExtension(message.extensionId) };
       default:
         throw new Error("Unsupported message type: " + message.type);
     }
@@ -642,6 +825,9 @@ importScripts(
       console.warn("legacy_migration_skipped", error.message);
     }
     await migrations.migrateTo2_0_0();
+    if (migrations.migratePopupListStyle) {
+      await migrations.migratePopupListStyle();
+    }
   }
 
   chrome.runtime.onInstalled.addListener(function() {
@@ -726,4 +912,15 @@ importScripts(
   runMigrations().catch(function(error) {
     console.error("initial_migration_failed", error);
   });
+
+  root.ExtensityBackground = {
+    buildFallbackMetadata: buildFallbackMetadata,
+    buildGenericStoreUrl: buildGenericStoreUrl,
+    defaultCategoryForInstallType: defaultCategoryForInstallType,
+    firstDescriptionLine: firstDescriptionLine,
+    loadExtensionMetadata: loadExtensionMetadata,
+    normalizeExtensions: normalizeExtensions,
+    normalizeStoreUrl: normalizeStoreUrl,
+    parseChromeWebStoreHtml: parseChromeWebStoreHtml
+  };
 })(self);

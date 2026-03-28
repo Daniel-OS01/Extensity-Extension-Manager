@@ -34,8 +34,8 @@ body.dark-mode {
 }
 
 #dashboard-page .dashboard-tabs button.selected {
-  background: #1f4f86;
-  border-color: #1f4f86;
+  background: var(--accent);
+  border-color: var(--accent);
 }
 
 #dashboard-page .dashboard-section {
@@ -44,12 +44,12 @@ body.dark-mode {
 }
 
 #dashboard-page .dashboard-section h2 {
-  color: #365f92;
+  color: var(--accent);
   margin-bottom: 14px;
 }
 
 #dashboard-page .dashboard-section h3 {
-  color: #365f92;
+  color: var(--accent);
   font-size: 14px;
   margin-bottom: 10px;
 }
@@ -79,7 +79,7 @@ body.dark-mode {
 
 #dashboard-page .history-list li {
   align-items: center;
-  border-bottom: 1px solid rgba(210, 220, 234, 0.7);
+  border-bottom: 1px solid var(--border);
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
@@ -96,8 +96,26 @@ body.dark-mode {
 }
 
 #dashboard-page .event-meta {
-  color: #5e6c7d;
+  color: var(--muted);
   font-size: 12px;
+}
+
+#dashboard-page .event-badge {
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: bold;
+  padding: 1px 6px;
+  text-transform: uppercase;
+}
+
+#dashboard-page .event-enabled {
+  background: rgba(42, 173, 124, 0.15);
+  color: #2aad7c;
+}
+
+#dashboard-page .event-disabled {
+  background: rgba(178, 67, 67, 0.12);
+  color: var(--danger);
 }
 
 #dashboard-page .extension-grid {
@@ -109,8 +127,8 @@ body.dark-mode {
 #dashboard-page .extension-grid label,
 #dashboard-page .alias-list .card-row {
   align-items: center;
-  background: #f7f9fc;
-  border: 1px solid #d2dcea;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 12px;
   display: flex;
   gap: 10px;

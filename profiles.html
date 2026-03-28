@@ -33,10 +33,50 @@
 
   <section id="content" data-sbind="css: layoutClass">
     <p class="status error" data-sbind="visible: error, text: error"></p>
+    <div class="page-toolbar">
+      <div class="view-mode-switch">
+        <button type="button" data-sbind="click: setLayoutLandscape, css:{active: layoutIsLandscape}">Landscape</button>
+        <button type="button" data-sbind="click: setLayoutPortrait, css:{active: layoutIsPortrait}">Portrait</button>
+      </div>
+    </div>
     <fieldset id="profiles">
+      <div class="extensions" data-sbind="if: editable">
+        <div class="editor-header">
+          <input class="profile-title" type="text" data-sbind="value: current_profile().name, disable: current_profile().reserved(), attr:{dir: currentProfileNameDir}" />
+          <div class="toggle">
+            <a href="#" data-sbind="click: toggleAll">All</a> |
+            <a href="#" data-sbind="click: toggleNone">None</a>
+          </div>
+        </div>
+
+        <div class="sort-modes">
+          <button type="button" data-sbind="click: setSortAlpha, css:{active: sortIsAlpha}">A-Z</button>
+          <button type="button" data-sbind="click: setSortPopular, css:{active: sortIsPopular}">Popular</button>
+          <button type="button" data-sbind="click: setSortRecent, css:{active: sortIsRecent}">Recent</button>
+          <button type="button" data-sbind="click: setSortProfileCount, css:{active: sortIsProfileCount}">Profiles</button>
+        </div>
+
+        <ul data-sbind="foreach: sortedExtensions">
+          <li>
+            <label data-sbind="attr:{for:id}">
+              <input type="checkbox" data-sbind="value: id, attr:{id:id, name:id}, checked: $parent.current_profile().items" />
+              <img data-sbind="attr:{src: icon}" width="16" height="16" />
+              <span class="extension-copy">
+                <span class="extension-title-line">
+                  <span class="extension-name" data-sbind="text: short_name"></span>
+                  <span class="extension-version" data-sbind="visible: version, text: version"></span>
+                  <i class="fa fa-flask" title="Development" data-sbind="visible: is_development"></i>
+                </span>
+                <span class="extension-meta" data-sbind="visible: $parent.shouldShowProfilesExtensionMetadata, text: profileSummary"></span>
+              </span>
+            </label>
+          </li>
+        </ul>
+      </div>
+
       <div class="sidebar">
         <form class="profile-create" data-sbind="submit: add">
-          <input type="text" id="name" placeholder="New profile name" data-sbind="value: add_name" />
+          <input type="text" id="name" placeholder="New profile name" data-sbind="value: add_name, attr:{dir: profileNameDir}" />
           <button class="add" type="submit"><i class="fa fa-plus-circle"></i></button>
         </form>
 
@@ -48,7 +88,7 @@
         <ul class="items" data-sbind="foreach: profiles.items">
           <li data-sbind="visible: !reserved(), click: $parent.select, css:{active: name() == $parent.current_name()}">
             <input type="checkbox" data-sbind="checked: selected, clickBubble: false" />
-            <a data-sbind="text: short_name"></a>
+            <a class="profile-name-text" data-sbind="text: short_name, attr:{dir: $parent.profileNameDir}"></a>
             <i class="fa fa-trash-o remove-profile" data-sbind="click: $parent.remove, clickBubble: false"></i>
           </li>
         </ul>
@@ -63,27 +103,6 @@
           <a href="#" id="close" data-sbind="click: close">Close</a>
           <span id="save-result" class="hidden">Saved!</span>
         </div>
-      </div>
-
-      <div class="extensions" data-sbind="if: editable">
-        <div class="editor-header">
-          <input class="profile-title" type="text" data-sbind="value: current_profile().name, disable: current_profile().reserved()" />
-          <div class="toggle">
-            <a href="#" data-sbind="click: toggleAll">All</a> |
-            <a href="#" data-sbind="click: toggleNone">None</a>
-          </div>
-        </div>
-
-        <ul data-sbind="foreach: ext.extensions">
-          <li>
-            <label data-sbind="attr:{for:id}">
-              <input type="checkbox" data-sbind="value: id, attr:{id:id, name:id}, checked: $parent.current_profile().items" />
-              <img data-sbind="attr:{src: icon}" width="16" height="16" />
-              <span data-sbind="text: short_name"></span>
-              <i class="fa fa-flask" title="Development" data-sbind="visible: is_development"></i>
-            </label>
-          </li>
-        </ul>
       </div>
     </fieldset>
   </section>

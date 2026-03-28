@@ -1,4 +1,8 @@
 document.addEventListener("DOMContentLoaded", function() {
+  function numericOption(value, fallback) {
+    return typeof value === "number" && isFinite(value) ? value : fallback;
+  }
+
   function exportFilename(prefix, ext) {
     var d = new Date();
     var dd = String(d.getDate()).padStart(2, "0");
@@ -14,10 +18,10 @@ document.addEventListener("DOMContentLoaded", function() {
 
   function applyCssVars(options) {
     var style = document.documentElement.style;
-    style.setProperty("--font-size", (options.fontSizePx || 12) + "px");
-    style.setProperty("--item-padding-v", (options.itemPaddingPx || 10) + "px");
-    style.setProperty("--item-spacing", (options.itemSpacingPx || 8) + "px");
-    style.setProperty("--popup-width", (options.popupWidthPx || 380) + "px");
+    style.setProperty("--font-size", numericOption(options.fontSizePx, 12) + "px");
+    style.setProperty("--item-padding-v", numericOption(options.itemPaddingPx, 10) + "px");
+    style.setProperty("--item-spacing", numericOption(options.itemSpacingPx, 8) + "px");
+    style.setProperty("--popup-width", numericOption(options.popupWidthPx, 380) + "px");
   }
 
   function GroupEditor(group) {
@@ -75,6 +79,11 @@ document.addEventListener("DOMContentLoaded", function() {
     self.error = ko.observable("");
     self.message = ko.observable("");
     self.activeTab = ko.observable("history");
+    self.historyTab = ko.pureComputed(function() { return self.activeTab() === "history"; });
+    self.groupsTab = ko.pureComputed(function() { return self.activeTab() === "groups"; });
+    self.rulesTab = ko.pureComputed(function() { return self.activeTab() === "rules"; });
+    self.aliasesTab = ko.pureComputed(function() { return self.activeTab() === "aliases"; });
+    self.dataTab = ko.pureComputed(function() { return self.activeTab() === "data"; });
     self.showTabHistory = function() { self.activeTab("history"); };
     self.showTabGroups = function() { self.activeTab("groups"); };
     self.showTabRules = function() { self.activeTab("rules"); };
@@ -136,6 +145,10 @@ document.addEventListener("DOMContentLoaded", function() {
 
     self.isTab = function(tab) {
       return self.activeTab() === tab;
+    };
+
+    self.eventBadgeClass = function(event) {
+      return "event-badge event-" + (event || "unknown");
     };
 
     self.saveAliases = function() {

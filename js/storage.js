@@ -15,15 +15,24 @@
     localProfiles: false,
     migration: "1.4.0",
     migration_2_0_0: null,
+    migration_popupListStyle: null,
     profileDisplay: "landscape",
+    profileNameDirection: "auto",
+    popupListStyle: "card",
+    popupProfileBadgeSingleWordChars: 4,
+    popupProfileBadgeTextMode: "full",
+    popupWidthPx: 380,
     reminderDelayMinutes: 60,
     searchBox: true,
     showAlwaysOnBadge: true,
     showHeader: true,
+    showPopupVersionChips: true,
     showOptions: true,
+    showProfilesExtensionMetadata: true,
     itemPaddingPx: 10,
+    itemPaddingXPx: 12,
+    itemNameGapPx: 10,
     itemSpacingPx: 8,
-    popupWidthPx: 380,
     showReserved: false,
     sortMode: "alpha",
     viewMode: "list"
@@ -40,7 +49,8 @@
     recentlyUsed: [],
     undoStack: [],
     urlRules: [],
-    usageCounters: {}
+    usageCounters: {},
+    webStoreMetadata: {}
   };
 
   var profileNames = ["__always_on", "__favorites"];

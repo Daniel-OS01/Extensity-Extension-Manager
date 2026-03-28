@@ -1,4 +1,8 @@
 document.addEventListener("DOMContentLoaded", function() {
+  function numericOption(value, fallback) {
+    return typeof value === "number" && isFinite(value) ? value : fallback;
+  }
+
   function exportFilename(prefix, ext) {
     var d = new Date();
     var dd = String(d.getDate()).padStart(2, "0");
@@ -14,10 +18,12 @@ document.addEventListener("DOMContentLoaded", function() {
 
   function applyCssVars(options) {
     var style = document.documentElement.style;
-    style.setProperty("--font-size", (options.fontSizePx || 12) + "px");
-    style.setProperty("--item-padding-v", (options.itemPaddingPx || 10) + "px");
-    style.setProperty("--item-spacing", (options.itemSpacingPx || 8) + "px");
-    style.setProperty("--popup-width", (options.popupWidthPx || 380) + "px");
+    style.setProperty("--font-size", numericOption(options.fontSizePx, 12) + "px");
+    style.setProperty("--item-padding-v", numericOption(options.itemPaddingPx, 10) + "px");
+    style.setProperty("--item-padding-x", numericOption(options.itemPaddingXPx, 12) + "px");
+    style.setProperty("--item-name-gap", numericOption(options.itemNameGapPx, 10) + "px");
+    style.setProperty("--item-spacing", numericOption(options.itemSpacingPx, 8) + "px");
+    style.setProperty("--popup-width", numericOption(options.popupWidthPx, 380) + "px");
   }
 
   function formatTimestamp(timestamp) {
@@ -134,9 +140,20 @@ document.addEventListener("DOMContentLoaded", function() {
       }).catch(function() {});
     };
 
+    self.applyPresetNone = function() {
+      self.options.fontSizePx(12);
+      self.options.itemPaddingPx(0);
+      self.options.itemPaddingXPx(0);
+      self.options.itemNameGapPx(0);
+      self.options.itemSpacingPx(0);
+      self.save();
+    };
+
     self.applyPresetCompact = function() {
       self.options.fontSizePx(11);
       self.options.itemPaddingPx(6);
+      self.options.itemPaddingXPx(10);
+      self.options.itemNameGapPx(8);
       self.options.itemSpacingPx(4);
       self.save();
     };
@@ -144,6 +161,8 @@ document.addEventListener("DOMContentLoaded", function() {
     self.applyPresetDefault = function() {
       self.options.fontSizePx(12);
       self.options.itemPaddingPx(10);
+      self.options.itemPaddingXPx(12);
+      self.options.itemNameGapPx(10);
       self.options.itemSpacingPx(8);
       self.save();
     };
@@ -151,6 +170,8 @@ document.addEventListener("DOMContentLoaded", function() {
     self.applyPresetComfortable = function() {
       self.options.fontSizePx(13);
       self.options.itemPaddingPx(14);
+      self.options.itemPaddingXPx(14);
+      self.options.itemNameGapPx(12);
       self.options.itemSpacingPx(12);
       self.save();
     };
