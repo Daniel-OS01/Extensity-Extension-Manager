@@ -54,6 +54,11 @@ document.addEventListener("DOMContentLoaded", function() {
     self.error = ko.observable("");
     self.message = ko.observable("");
     self.activeTab = ko.observable("history");
+    self.showTabHistory = function() { self.activeTab("history"); };
+    self.showTabGroups = function() { self.activeTab("groups"); };
+    self.showTabRules = function() { self.activeTab("rules"); };
+    self.showTabAliases = function() { self.activeTab("aliases"); };
+    self.showTabData = function() { self.activeTab("data"); };
     self.options = new OptionsCollection();
     self.extensions = ko.observableArray([]);
     self.aliasRows = ko.observableArray([]);

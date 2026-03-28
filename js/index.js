@@ -200,6 +200,10 @@ document.addEventListener("DOMContentLoaded", function() {
       self.performAction(ExtensityApi.saveOptions(nextOptions));
     };
 
+    self.setSortAlpha = function() { self.setSortMode("alpha"); };
+    self.setSortFrequency = function() { self.setSortMode("frequency"); };
+    self.setSortRecent = function() { self.setSortMode("recent"); };
+
     self.setProfile = function(profile) {
       self.performAction(ExtensityApi.applyProfile(profile.name()));
     };
