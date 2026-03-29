@@ -491,12 +491,6 @@ document.addEventListener("DOMContentLoaded", function() {
     self.formatHistoryDate = function(timestamp) {
       return new Date(timestamp).toLocaleString();
     };
-
-    self.syncDrive = function() {
-      self.performAction(ExtensityApi.syncDrive()).then(function() {
-        self.message("Drive sync completed.");
-      }).catch(function() {});
-    };
   }
 
   _.defer(function() {

@@ -655,9 +655,6 @@
         type: "SET_EXTENSION_STATE"
       });
     },
-    syncDrive: function() {
-      return chromeMessage({ type: "SYNC_DRIVE" });
-    },
     toggleAll: function() {
       return chromeMessage({ type: "TOGGLE_ALL" });
     },

@@ -145,14 +145,6 @@
         </div>
         <div class="field"><label for="importJson">Import JSON backup</label><input type="file" id="importJson" accept=".json,application/json" data-sbind="event:{change: importJson}" /></div>
       </fieldset>
-
-      <fieldset class="settings-card">
-        <legend>Cloud Sync</legend>
-        <div class="field"><input type="checkbox" id="driveSync" data-sbind="checked: options.driveSync" /><label for="driveSync">Enable Google Drive backup</label></div>
-        <div class="field"><span class="muted">Cloud Sync is a future feature and is not implemented in this build yet.</span></div>
-        <div class="field"><span class="muted">Last Drive sync:</span> <span data-sbind="text: lastDriveSyncLabel"></span></div>
-        <div class="field action-row"><button type="button" title="Sync your backup to Google Drive now" data-sbind="click: syncDrive">Sync now</button></div>
-      </fieldset>
     </div>
 
     <div class="footer-actions page-actions">

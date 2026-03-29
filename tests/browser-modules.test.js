@@ -102,7 +102,6 @@ function loadBackgroundModule(extraSelf = {}, overrides = {}) {
     }),
     importScripts() {},
     self: {
-      ExtensityDriveSync: {},
       ExtensityHistory: {},
       ExtensityImportExport: {},
       ExtensityMigrations: {

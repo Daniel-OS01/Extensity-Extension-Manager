@@ -113,10 +113,6 @@ document.addEventListener("DOMContentLoaded", function() {
       );
     };
 
-    self.lastDriveSyncLabel = ko.pureComputed(function() {
-      return formatTimestamp(self.options.lastDriveSync());
-    });
-
     self.applyState = function(state) {
       var normalizedOptions = normalizeOptionState(state.options);
       self.options.apply(normalizedOptions);
@@ -210,12 +206,6 @@ document.addEventListener("DOMContentLoaded", function() {
         self.busy(false);
         event.target.value = "";
       });
-    };
-
-    self.syncDrive = function() {
-      self.performAction(ExtensityApi.syncDrive()).then(function() {
-        self.message("Drive sync completed.");
-      }).catch(function() {});
     };
 
     self.applyPresetNone = function() {

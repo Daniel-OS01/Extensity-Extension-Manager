@@ -4,8 +4,7 @@ importScripts(
   "import-export.js",
   "url-rules.js",
   "history-logger.js",
-  "reminders.js",
-  "drive-sync.js"
+  "reminders.js"
 );
 
 (function(root) {
@@ -15,7 +14,6 @@ importScripts(
   var urlRules = root.ExtensityUrlRules;
   var history = root.ExtensityHistory;
   var reminders = root.ExtensityReminders;
-  var driveSync = root.ExtensityDriveSync;
   var urlRuleTimeoutAlarmPrefix = "extensity-url-rule-timeout-";
   var urlEvaluationTimers = {};
   var tabRuleApplications = {};
@@ -70,7 +68,6 @@ importScripts(
       return !!entry.id;
     });
   }
-
   function buildRuleApplication(entries, url, tabId) {
     var normalizedEntries = cloneRuleEntries(entries);
     return {
@@ -87,7 +84,6 @@ importScripts(
       url: url || ""
     };
   }
-
   async function appendDebugHistoryRecords(records) {
     if (!records || !records.length) {
       return;
@@ -97,14 +93,12 @@ importScripts(
       eventHistory: history.appendHistory(localState.eventHistory, records)
     });
   }
-
   function createDebugHistoryRecord(current, payload) {
     if (!current || !current.options || !current.options.debugHistoryVerbose) {
       return null;
     }
     return history.createEventRecord(payload);
   }
-
   async function scheduleUrlRuleTimeoutDisable(entries, minutes, tabId) {
     var normalizedEntries = cloneRuleEntries(entries).filter(function(entry) {
       return entry.enabled;
@@ -112,7 +106,6 @@ importScripts(
     if (!normalizedEntries.length) {
       return;
     }
-
     var alarmName = urlRuleTimeoutAlarmName();
     var localState = await storage.loadLocalState();
     var queue = Array.isArray(localState.urlRuleTimeoutQueue) ? localState.urlRuleTimeoutQueue.slice() : [];
@@ -136,7 +129,6 @@ importScripts(
     if (!entry || !Array.isArray(entry.entries) || !entry.entries.length) {
       return;
     }
-
     var current = await loadContext();
     var disableChanges = cloneRuleEntries(entry.entries).map(function(change) {
       return {
@@ -712,7 +704,6 @@ importScripts(
     });
 
     var extraHistoryRecords = (options.historyRecords || []).filter(Boolean);
-
     if (!changes.length) {
       var noChangePatch = {};
       if (extraHistoryRecords.length) {
@@ -1051,17 +1042,10 @@ importScripts(
     return buildState();
   }
 
-  async function syncDriveNow() {
-    return {
-      result: await driveSync.syncDrive()
-    };
-  }
-
   async function openDashboard() {
     await createTab("dashboard.html");
     return { opened: true };
   }
-
   async function testUrlRules(url) {
     var current = await loadContext();
     var analysis = urlRules.analyzeUrl(url, current.localState.urlRules);
@@ -1119,11 +1103,9 @@ importScripts(
 
     return runApplyProfile(names[nextIndex]);
   }
-
   function clearRuleApplication(tabId) {
     delete tabRuleApplications[tabId];
   }
-
   async function evaluateRulesForUrl(url, tabId) {
     var current = await loadContext();
     var analysis = urlRules.analyzeUrl(url, current.localState.urlRules);
@@ -1159,7 +1141,6 @@ importScripts(
       triggeredBy: "rule",
       url: url
     });
-
     if (tabId != null) {
       if (desiredEntries.length) {
         tabRuleApplications[tabId] = buildRuleApplication(desiredEntries, url, tabId);
@@ -1167,15 +1148,12 @@ importScripts(
         clearRuleApplication(tabId);
       }
     }
-
     if (debugRecord) {
       await appendDebugHistoryRecords([debugRecord]);
     }
-
     if (!desiredEntries.length) {
       return buildState();
     }
-
     return applyExtensionChanges(
       desiredEntries,
       { source: "rule", tabId: tabId, url: url },
@@ -1186,7 +1164,6 @@ importScripts(
       }
     );
   }
-
   function scheduleRuleEvaluation(tabId, url) {
     if (urlEvaluationTimers[tabId]) {
       clearTimeout(urlEvaluationTimers[tabId]);
@@ -1196,7 +1173,6 @@ importScripts(
       clearRuleApplication(tabId);
       return;
     }
-
     urlEvaluationTimers[tabId] = setTimeout(function() {
       delete urlEvaluationTimers[tabId];
       evaluateRulesForUrl(url, tabId).catch(function(error) {
@@ -1242,8 +1218,6 @@ importScripts(
             }
           )
         };
-      case "SYNC_DRIVE":
-        return await syncDriveNow();
       case "TOGGLE_ALL":
         return { state: await runToggleAll() };
       case "UNDO_LAST":
@@ -1343,7 +1317,6 @@ importScripts(
     var application = tabRuleApplications[tabId];
     delete tabRuleApplications[tabId];
     if (!application || !application.enabledIds.length) { return; }
-
     loadContext().then(function(ctx) {
       var options = ctx.options || {};
       var disableOnClose = !!options.urlRuleDisableOnClose;
