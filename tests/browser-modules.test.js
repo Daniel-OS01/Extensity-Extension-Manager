@@ -1665,3 +1665,20 @@ test("background isAppType identifies hosted and packaged apps", () => {
   assert.equal(isAppType(null), false);
   assert.equal(isAppType(undefined), false);
 });
+
+test("history logger handles circular references gracefully in safeJson", () => {
+  const root = loadModule("js/history-logger.js");
+
+  const circular = {};
+  circular.self = circular;
+
+  const errorRecord = root.ExtensityHistory.createEventRecord({
+    action: "error_test",
+    debug: circular,
+    event: "error",
+    label: "Error evaluation",
+    result: "error"
+  });
+
+  assert.equal(errorRecord.debug, "");
+});
