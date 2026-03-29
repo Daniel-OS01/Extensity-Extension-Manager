@@ -754,9 +754,9 @@ importScripts(
       );
     }
 
-    for (var index = 0; index < changes.length; index += 1) {
-      await setExtensionEnabled(changes[index].id, changes[index].enabled);
-    }
+    await Promise.all(changes.map(function(change) {
+      return setExtensionEnabled(change.id, change.enabled);
+    }));
 
     localPatch.reminderQueue = await reminders.syncReminderQueue(
       current.localState.reminderQueue,
