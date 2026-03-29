@@ -273,6 +273,7 @@
     loadProfiles: loadProfiles,
     loadSyncOptions: loadSyncOptions,
     makeId: makeId,
+    isObject: isObject,
     mergeDefaults: mergeDefaults,
     normalizeProfileMap: normalizeProfileMap,
     profileMapToItems: profileMapToItems,
