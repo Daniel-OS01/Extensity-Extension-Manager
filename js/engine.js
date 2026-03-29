@@ -786,6 +786,7 @@
     buildManageExtensionUrl: buildManageExtensionUrl,
     buildPermissionsPageUrl: buildPermissionsPageUrl,
     chromeCall: chromeCall,
+    clampInteger: clampInteger,
     copyText: copyText,
     openTab: openTab,
     pruneText: pruneText
