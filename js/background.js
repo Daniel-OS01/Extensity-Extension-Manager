@@ -394,9 +394,12 @@ importScripts(
         return normalizeCategoryText(value.about.name);
       }
 
-      var keys = Object.keys(value);
-      for (var i = 0; i < keys.length; i += 1) {
-        var nextValue = value[keys[i]];
+      for (var key in value) {
+        if (!Object.prototype.hasOwnProperty.call(value, key)) {
+          continue;
+        }
+
+        var nextValue = value[key];
         if (Array.isArray(nextValue)) {
           for (var j = 0; j < nextValue.length; j += 1) {
             var fromArray = readCategoryFromJsonObject(nextValue[j]);
