@@ -26,7 +26,7 @@ assert(fs.existsSync(distZipPath), "Expected dist/dist.zip to exist. Run `make d
 const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
 const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
 const version = manifest.version;
-const packageName = packageJson.name || "extensity-extension-manager";
+const packageName = packageJson.name || "extensity-plus";
 const extensionZipName = `${packageName}-v${version}.zip`;
 const extensionZipPath = path.join(artifactsRoot, extensionZipName);
 const manifestCopyPath = path.join(artifactsRoot, "manifest.json");

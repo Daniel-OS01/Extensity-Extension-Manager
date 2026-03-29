@@ -1,6 +1,6 @@
-# Extensity Extension Manager
+# Extensity-Plus
 
-Extensity Extension Manager is a Chrome Manifest V3 extension project that evolves the original Extensity into a popup-first manager for browser extensions, profiles, URL rules, history, and dashboard tools.
+Extensity-Plus is a Chrome Manifest V3 extension project that evolves the original Extensity into a popup-first manager for browser extensions, profiles, URL rules, history, and dashboard tools.
 
 This branch upgrades the project toward a 2.0 architecture while keeping the original Extensity strengths:
 

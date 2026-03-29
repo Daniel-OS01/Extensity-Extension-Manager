@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8" />
-<title>Extensity Dashboard</title>
+<title>Extensity-Plus Dashboard</title>
 <link rel="stylesheet" type="text/css" href="styles/options.css" />
 <link rel="stylesheet" type="text/css" href="styles/dashboard.css" />
 <link rel="stylesheet" type="text/css" href="styles/font-awesome.min.css" />
@@ -18,7 +18,7 @@
 <section id="dashboard-page">
   <section id="header">
     <div class="tabs">
-      <h1><img src="images/icon48.png" /> Extensity Dashboard</h1>
+      <h1><img src="images/icon48.png" /> Extensity-Plus Dashboard</h1>
       <div id="menu">
         <a href="options.html" title="Open Options settings">Options</a>
         <a href="profiles.html" title="Open Profiles manager">Profiles</a>
@@ -45,7 +45,7 @@
       <button type="button" title="Manage automatic URL-based rules" data-sbind="click: showTabRules, css:{selected: rulesTab}">URL Rules</button>
       <button type="button" title="Edit extension aliases" data-sbind="click: showTabAliases, css:{selected: aliasesTab}">Aliases</button>
       <button type="button" title="Import and export extension data" data-sbind="click: showTabData, css:{selected: dataTab}">Import / Export</button>
-      <button type="button" title="About Extensity" data-sbind="click: showTabAbout, css:{selected: aboutTab}">About</button>
+      <button type="button" title="About Extensity-Plus" data-sbind="click: showTabAbout, css:{selected: aboutTab}">About</button>
     </div>
 
     <section class="dashboard-section" data-sbind="visible: historyTab">
@@ -202,7 +202,7 @@
     <section class="dashboard-section" data-sbind="visible: dataTab">
       <h2>Import / Export</h2>
       <div class="footer-actions">
-        <button type="button" title="Export all Extensity data as JSON" data-sbind="click: exportJson">Export JSON</button>
+        <button type="button" title="Export all Extensity-Plus data as JSON" data-sbind="click: exportJson">Export JSON</button>
         <button type="button" title="Export extension data as CSV" data-sbind="click: exportCsv">Export CSV</button>
         <button type="button" title="Sync your backup to Google Drive now" data-sbind="click: syncDrive">Sync Drive</button>
       </div>
@@ -214,10 +214,10 @@
     </section>
 
     <section class="dashboard-section" data-sbind="visible: aboutTab">
-      <h2>About Extensity</h2>
+      <h2>About Extensity-Plus</h2>
       <p><strong>Version:</strong> <span data-sbind="text: appVersion"></span></p>
-      <p>Extensity lets you quickly enable, disable, and manage Chrome extensions from the popup, profiles, and URL-based rules.</p>
-      <p><strong>Repository:</strong> <a href="https://github.com/Daniel-OS01/Extensity-Extension-Manager" target="_blank" rel="noopener noreferrer">Daniel-OS01/Extensity-Extension-Manager</a></p>
+      <p>Extensity-Plus lets you quickly enable, disable, and manage Chrome extensions from the popup, profiles, and URL-based rules.</p>
+      <p><strong>Repository:</strong> <a href="https://github.com/Daniel-OS01/Extensity-Plus" target="_blank" rel="noopener noreferrer">Daniel-OS01/Extensity-Plus</a></p>
       <p><strong>Main inspiration:</strong> <a href="https://github.com/sergiokas/Extensity" target="_blank" rel="noopener noreferrer">sergiokas/Extensity</a></p>
       <p><strong>Credits:</strong> Maintained by Daniel-OS01 and built on the original Extensity work by Sergio Kas, with additional inspiration from the wider Extensity open-source lineage.</p>
       <p class="event-meta">Chrome Web Store publishing will be added later. This build currently ships as a direct repository/unpacked extension workflow.</p>
