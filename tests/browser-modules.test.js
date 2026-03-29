@@ -1165,6 +1165,9 @@ test("options none preset keeps font size and zeroes spacing options", async () 
       }
     },
     ExtensityIO: {},
+    ExtensityUtils: {
+      applyThemeClasses: function() {}
+    },
     ExtensityImportExport: {},
     _: {
       defer(fn) {
