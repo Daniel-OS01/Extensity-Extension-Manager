@@ -1665,3 +1665,61 @@ test("background isAppType identifies hosted and packaged apps", () => {
   assert.equal(isAppType(null), false);
   assert.equal(isAppType(undefined), false);
 });
+
+test("normalizePopupTextMode returns compact/icons_only or defaults to full", async () => {
+  let appliedOptions = null;
+  function OptionsCollection() {
+    this.apply = function(opts) {
+      appliedOptions = opts;
+    };
+    this.lastDriveSync = function() { return null; };
+  }
+
+  let domReady = null;
+  let capturedVm = null;
+
+  loadBrowserScript(path.join(repoRoot, "js/options.js"), {
+    OptionsCollection,
+    ExtensityApi: {
+      getState() { return Promise.resolve({ state: { options: {} } }); }
+    },
+    ko: {
+      observable() { return function() {}; },
+      pureComputed() {},
+      bindingProvider: {},
+      secureBindingsProvider: function() {},
+      applyBindings(vm) { capturedVm = vm; }
+    },
+    _: { defer(fn) { fn(); } },
+    document: {
+      addEventListener(event, cb) { if (event === "DOMContentLoaded") domReady = cb; },
+      body: { classList: { toggle() {} }, style: {} },
+      documentElement: { style: { setProperty() {} } },
+      getElementById() { return {}; }
+    },
+    chrome: {
+      permissions: { contains(desc, cb) { cb(true); } }
+    },
+    window: {}
+  });
+
+  domReady();
+
+  capturedVm.applyState({ options: { popupProfilePillTextMode: "compact" } });
+  assert.equal(appliedOptions.popupProfilePillTextMode, "compact");
+
+  capturedVm.applyState({ options: { popupProfilePillTextMode: "icons_only" } });
+  assert.equal(appliedOptions.popupProfilePillTextMode, "icons_only");
+
+  capturedVm.applyState({ options: { popupProfilePillTextMode: "full" } });
+  assert.equal(appliedOptions.popupProfilePillTextMode, "full");
+
+  capturedVm.applyState({ options: { popupProfilePillTextMode: "invalid" } });
+  assert.equal(appliedOptions.popupProfilePillTextMode, "full");
+
+  capturedVm.applyState({ options: { popupProfilePillTextMode: null } });
+  assert.equal(appliedOptions.popupProfilePillTextMode, "full");
+
+  capturedVm.applyState({ options: { popupProfilePillTextMode: undefined } });
+  assert.equal(appliedOptions.popupProfilePillTextMode, "full");
+});
