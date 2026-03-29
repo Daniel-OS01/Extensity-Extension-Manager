@@ -584,6 +584,12 @@
     });
   };
 
+
+  function applyThemeClasses(options) {
+    document.body.classList.toggle("dark-mode", options.colorScheme === "dark");
+    document.body.classList.toggle("light-mode", options.colorScheme === "light");
+  }
+
   var ExtensityApi = {
     assignExtensionProfile: function(extensionId, profileNameOrNull) {
       return chromeMessage({
@@ -767,6 +773,7 @@
     PROFILE_ICONS: PROFILE_ICONS
   };
   root.ExtensityUtils = {
+    applyThemeClasses: applyThemeClasses,
     buildManageExtensionUrl: buildManageExtensionUrl,
     buildPermissionsPageUrl: buildPermissionsPageUrl,
     chromeCall: chromeCall,

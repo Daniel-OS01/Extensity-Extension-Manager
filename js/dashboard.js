@@ -12,11 +12,6 @@ document.addEventListener("DOMContentLoaded", function() {
     return prefix + "-" + dd + "-" + mm + "-" + yyyy + "." + ext;
   }
 
-  function applyThemeClasses(options) {
-    document.body.classList.toggle("dark-mode", options.colorScheme === "dark");
-    document.body.classList.toggle("light-mode", options.colorScheme === "light");
-  }
-
   function applyCssVars(options) {
     var itemPadding = numericOption(options.itemPaddingPx, 10);
     var itemVerticalSpace = numericOption(options.itemVerticalSpacePx, 0);
@@ -314,7 +309,7 @@ document.addEventListener("DOMContentLoaded", function() {
       var eventHistory = Array.isArray(localState.eventHistory) ? localState.eventHistory : [];
       self.appVersion((state.metadata && state.metadata.version) || "");
       self.options.apply(state.options);
-      applyThemeClasses(state.options);
+      ExtensityUtils.applyThemeClasses(state.options);
       applyCssVars(state.options);
       self.extensions(extensionList.filter(function(extension) {
         return !extension.isApp;
