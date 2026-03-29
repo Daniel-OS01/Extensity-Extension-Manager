@@ -1814,3 +1814,346 @@ test("normalizePopupTextMode returns compact/icons_only or defaults to full", as
   capturedVm.applyState({ options: { popupProfilePillTextMode: undefined } });
   assert.equal(appliedOptions.popupProfilePillTextMode, "full");
 });
+
+test("popup template avoids secure-binding context variables", () => {
+  const html = fs.readFileSync(path.join(repoRoot, "index.html"), "utf8");
+
+  assert.doesNotMatch(html, /\$parent|\$root|\$data|\$index/);
+});
+
+test("popup rows expose direct profile membership and sort handlers", async () => {
+  function observable(initialValue) {
+    let value = initialValue;
+    const subscribers = [];
+    const obs = function(nextValue) {
+      if (arguments.length > 0) {
+        value = nextValue;
+        subscribers.forEach((fn) => fn(value));
+        return obs;
+      }
+      return value;
+    };
+    obs.subscribe = function(fn) {
+      subscribers.push(fn);
+    };
+    obs.extend = function(extenders) {
+      Object.keys(extenders || {}).forEach((name) => {
+        if (ko.extenders[name]) {
+          ko.extenders[name](obs, extenders[name]);
+        }
+      });
+      return obs;
+    };
+    return obs;
+  }
+
+  function observableArray(initialValue) {
+    const obs = observable((initialValue || []).slice());
+    obs.push = function(item) {
+      const nextValue = obs().slice();
+      nextValue.push(item);
+      obs(nextValue);
+    };
+    obs.remove = function(predicateOrItem) {
+      const predicate = typeof predicateOrItem === "function"
+        ? predicateOrItem
+        : function(item) { return item === predicateOrItem; };
+      obs(obs().filter((item) => !predicate(item)));
+    };
+    obs.indexOf = function(item) {
+      return obs().indexOf(item);
+    };
+    return obs;
+  }
+
+  let capturedVm = null;
+  let domReady = null;
+  const deferred = [];
+  const membershipCalls = [];
+  const saveOptionsCalls = [];
+  const ko = {
+    extenders: {},
+    observable,
+    observableArray,
+    computed(fn) {
+      const obs = function() {
+        return fn();
+      };
+      obs.extend = function(extenders) {
+        Object.keys(extenders || {}).forEach((name) => {
+          if (ko.extenders[name]) {
+            ko.extenders[name](obs, extenders[name]);
+          }
+        });
+        return obs;
+      };
+      return obs;
+    },
+    pureComputed(fn) {
+      const obs = function() {
+        return fn();
+      };
+      obs.extend = function(extenders) {
+        Object.keys(extenders || {}).forEach((name) => {
+          if (ko.extenders[name]) {
+            ko.extenders[name](obs, extenders[name]);
+          }
+        });
+        return obs;
+      };
+      return obs;
+    },
+    bindingProvider: {},
+    secureBindingsProvider: function() {},
+    applyBindings(vm) {
+      capturedVm = vm;
+    }
+  };
+  const documentBody = {
+    appendChild() {},
+    className: "",
+    removeChild() {},
+    style: {}
+  };
+  const state = {
+    options: {
+      activeProfile: "__favorites",
+      appsFirst: false,
+      colorScheme: "auto",
+      contrastMode: "normal",
+      enabledFirst: false,
+      extensionIconSizePx: 16,
+      fontFamily: "",
+      fontSizePx: 12,
+      groupApps: true,
+      itemNameGapPx: 0,
+      itemPaddingPx: 0,
+      itemPaddingXPx: 0,
+      itemSpacingPx: 0,
+      itemVerticalSpacePx: 0,
+      popupActionRowLayout: "horizontal",
+      popupBgColor: "",
+      popupHeaderIconSize: "compact",
+      popupListStyle: "table",
+      popupMainPaddingPx: 0,
+      popupProfileBadgeSingleWordChars: 4,
+      popupProfileBadgeTextMode: "compact",
+      popupProfilePillShowIcons: false,
+      popupProfilePillSingleWordChars: 4,
+      popupProfilePillTextMode: "icons_only",
+      popupScrollbarMode: "invisible",
+      popupTableActionPanelPosition: "below_name",
+      popupWidthPx: 380,
+      searchBox: true,
+      showAlwaysOnBadge: true,
+      showHeader: true,
+      showOptions: true,
+      showPopupSort: true,
+      showPopupVersionChips: true,
+      showReserved: true,
+      sortMode: "recent",
+      viewMode: "list"
+    },
+    profiles: {
+      items: [
+        { items: [], name: "__always_on" },
+        { color: "#ff0000", icon: "fa-rocket", items: ["ext-1"], name: "Work" }
+      ],
+      localProfiles: false
+    },
+    extensions: [
+      {
+        alias: "",
+        description: "Example extension description",
+        enabled: true,
+        groupBadges: [],
+        groupIds: [],
+        homepageUrl: "https://example.com",
+        icon: "images/icon48.png",
+        id: "ext-1",
+        installType: "normal",
+        isApp: false,
+        mayDisable: true,
+        name: "Example Extension",
+        optionsUrl: "https://example.com/options",
+        storeUrl: "https://chrome.google.com/webstore/detail/example/ext-1",
+        usageCount: 2,
+        version: "1.2.3"
+      }
+    ],
+    localState: {
+      bulkToggleRestore: [],
+      undoStack: []
+    }
+  };
+  const windowRoot = {
+    ExtensityStorage: loadBrowserScript(path.join(repoRoot, "js/storage.js"), {
+      self: {}
+    }).ExtensityStorage
+  };
+
+  loadBrowserScript(path.join(repoRoot, "js/engine.js"), {
+    chrome: {
+      runtime: {
+        lastError: null,
+        sendMessage(payload, callback) {
+          callback({ ok: true, payload: {} });
+        }
+      },
+      storage: {
+        sync: {
+          get(defaults, callback) {
+            callback({ dismissals: [] });
+          },
+          set() {}
+        }
+      },
+      tabs: {
+        create(details, callback) {
+          if (callback) {
+            callback({});
+          }
+        }
+      }
+    },
+    document: {
+      body: documentBody,
+      createElement() {
+        return {
+          click() {},
+          select() {},
+          setAttribute() {},
+          style: {}
+        };
+      },
+      execCommand() {
+        return true;
+      },
+      getElementById() {
+        return null;
+      }
+    },
+    ko,
+    navigator: {
+      clipboard: {
+        writeText() {
+          return Promise.resolve();
+        }
+      }
+    },
+    _: Object.assign(function(items) {
+      return {
+        find(predicate) {
+          return (items || []).find(predicate);
+        }
+      };
+    }, {
+      delay(fn) {
+        fn();
+      }
+    }),
+    window: windowRoot
+  });
+
+  loadBrowserScript(path.join(repoRoot, "js/index.js"), {
+    DismissalsCollection: windowRoot.DismissalsCollection,
+    ExtensionModel: windowRoot.ExtensionModel,
+    ExtensionCollectionModel: windowRoot.ExtensionCollectionModel,
+    ExtensityApi: {
+      getExtensionMetadata() {
+        return Promise.resolve({ metadata: {} });
+      },
+      getState() {
+        return Promise.resolve({ state });
+      },
+      saveOptions(nextOptions) {
+        saveOptionsCalls.push(nextOptions.sortMode);
+        state.options = Object.assign({}, state.options, nextOptions);
+        return Promise.resolve({ state });
+      },
+      updateExtensionProfileMembership(extensionId, profileName, shouldInclude) {
+        membershipCalls.push({ extensionId, profileName, shouldInclude });
+        return Promise.resolve({ state });
+      }
+    },
+    ExtensityPopupLabels: windowRoot.ExtensityPopupLabels,
+    ExtensityUtils: windowRoot.ExtensityUtils,
+    OptionsCollection: windowRoot.OptionsCollection,
+    ProfileCollectionModel: windowRoot.ProfileCollectionModel,
+    ProfileModel: windowRoot.ProfileModel,
+    _: {
+      defer(fn) {
+        deferred.push(fn);
+      }
+    },
+    chrome: {
+      management: {
+        launchApp() {}
+      },
+      tabs: {
+        create() {}
+      }
+    },
+    document: {
+      addEventListener(event, callback) {
+        if (event === "DOMContentLoaded") {
+          domReady = callback;
+        }
+      },
+      body: documentBody,
+      documentElement: {
+        className: "",
+        style: {
+          setProperty() {}
+        }
+      },
+      querySelectorAll() {
+        return [];
+      }
+    },
+    ko,
+    window: {
+      ExtensityTooltips: {
+        applyAutoTooltips() {}
+      },
+      close() {}
+    }
+  });
+
+  assert.ok(domReady);
+  domReady();
+  assert.equal(deferred.length, 1);
+  deferred[0]();
+  await Promise.resolve();
+  await Promise.resolve();
+
+  assert.ok(capturedVm);
+  const profile = capturedVm.listedProfiles()[0];
+  const extension = capturedVm.listedExtensions()[0];
+
+  assert.equal(typeof profile.selectProfile, "function");
+  assert.equal(typeof extension.toggleTableRowAction, "function");
+  assert.equal(typeof extension.onProfileMembershipChange, "function");
+  assert.equal(extension.showTableRow(), true);
+  assert.deepEqual(normalize(extension.profileDropdownOptions()), [
+    { label: "✓ Work", value: "Work" }
+  ]);
+
+  extension.onProfileMembershipChange(null, {
+    target: {
+      value: "Work"
+    }
+  });
+  await Promise.resolve();
+
+  assert.deepEqual(normalize(membershipCalls), [{
+    extensionId: "ext-1",
+    profileName: "Work",
+    shouldInclude: false
+  }]);
+
+  capturedVm.setSortAlpha();
+  await Promise.resolve();
+
+  assert.deepEqual(normalize(saveOptionsCalls), ["alpha"]);
+});

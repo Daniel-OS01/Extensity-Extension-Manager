@@ -288,6 +288,123 @@ document.addEventListener("DOMContentLoaded", function() {
       return !self.profilePillIconsOnly();
     };
 
+    self.decorateProfileRow = function(profile) {
+      profile.selectProfile = function() {
+        self.setProfile(profile);
+      };
+      profile.showPillCheck = ko.pureComputed(function() {
+        return self.showProfilePillCheck(profile);
+      });
+      profile.showAlwaysOnIcon = ko.pureComputed(function() {
+        return self.showProfilePillReservedIcon(profile, "__always_on");
+      });
+      profile.showFavoritesIcon = ko.pureComputed(function() {
+        return self.showProfilePillReservedIcon(profile, "__favorites");
+      });
+      profile.showCustomIcon = ko.pureComputed(function() {
+        return self.showProfilePillCustomIcon(profile);
+      });
+      profile.showPillText = ko.pureComputed(function() {
+        return self.showProfilePillText();
+      });
+      profile.showPillCount = ko.pureComputed(function() {
+        return self.showProfilePillText();
+      });
+    };
+
+    self.decorateItemRow = function(item) {
+      item.showDefaultRow = ko.pureComputed(function() {
+        return !item.isApp() && !self.isCompactPopupList() && !self.isTablePopupList();
+      });
+      item.showTableRow = ko.pureComputed(function() {
+        return !item.isApp() && self.isTablePopupList();
+      });
+      item.showCompactRow = ko.pureComputed(function() {
+        return !item.isApp() && self.isCompactPopupList();
+      });
+      item.showAppRow = ko.pureComputed(function() {
+        return item.isApp();
+      });
+      item.rowExpanded = ko.pureComputed(function() {
+        return self.expandedExtensionId() === item.id();
+      });
+      item.rowClick = function() {
+        if (item.isApp()) {
+          self.launchApp(item);
+          return;
+        }
+        self.toggleExtension(item);
+      };
+      item.rowKeydown = function(data, event) {
+        self.handleRowKeydown(item, event);
+      };
+      item.compactRowKeydown = function(data, event) {
+        self.handleCompactRowKeydown(item, event);
+      };
+      item.tableRowKeydown = function(data, event) {
+        self.handleTableRowKeydown(item, event);
+      };
+      item.toggleCompactAction = function() {
+        self.toggleCompactExtension(item);
+      };
+      item.toggleCompactRowAction = function() {
+        self.toggleCompactRow(item);
+      };
+      item.toggleTableRowAction = function() {
+        self.toggleTableRow(item);
+      };
+      item.openManageAction = function() {
+        return self.openManagePage(item);
+      };
+      item.openPermissionsAction = function() {
+        return self.openPermissionsPage(item);
+      };
+      item.copyLinkAction = function() {
+        return self.copyExtensionLink(item);
+      };
+      item.openStoreAction = function() {
+        return self.openChromeWebStore(item);
+      };
+      item.removeAction = function() {
+        return self.removeExtension(item);
+      };
+      item.launchOptionsAction = function() {
+        return self.launchOptions(item);
+      };
+      item.showOptionsButton = ko.pureComputed(function() {
+        return self.opts.showOptions() && !!item.optionsUrl() && !item.disabled();
+      });
+      item.showVersionCategoryLine = ko.pureComputed(function() {
+        return self.opts.showPopupVersionChips() && !!item.versionCategoryLine();
+      });
+      item.showVersionChip = ko.pureComputed(function() {
+        return self.opts.showPopupVersionChips() && !!item.version();
+      });
+      item.showCategorySubtitle = ko.pureComputed(function() {
+        return self.opts.showPopupVersionChips() && !!item.category();
+      });
+      item.profileDropdownOptions = ko.pureComputed(function() {
+        var memberMap = self.extensionMembershipMap(item);
+        return self.assignableProfiles().map(function(profile) {
+          var profileName = profile.name();
+          return {
+            label: (memberMap[profileName] ? "\u2713 " : "\u2003") + profile.short_name(),
+            value: profileName
+          };
+        });
+      });
+      item.onProfileMembershipChange = function(data, event) {
+        var selectedName = event.target.value;
+        event.target.value = "";
+        if (!selectedName) {
+          return false;
+        }
+        var isMember = self.isExtensionInProfile(item, selectedName);
+        self.performAction(ExtensityApi.updateExtensionProfileMembership(item.id(), selectedName, !isMember));
+        return false;
+      };
+    };
+
     self.canUndo = ko.pureComputed(function() {
       return self.undoDepth() > 0;
     });
@@ -299,8 +416,20 @@ document.addEventListener("DOMContentLoaded", function() {
     self.applyState = function(state) {
       self.opts.apply(state.options);
       self.activeProfile(state.options.activeProfile);
-      self.profiles.applyState(state.profiles);
-      self.exts.applyState(state.extensions);
+      self.profiles.localProfiles(state.profiles && state.profiles.localProfiles ? true : false);
+      self.profiles.items((state.profiles && state.profiles.items ? state.profiles.items : []).map(function(profile) {
+        var model = new ProfileModel(profile.name, profile.items, {
+          color: profile.color,
+          icon: profile.icon
+        });
+        self.decorateProfileRow(model);
+        return model;
+      }));
+      self.exts.items((state.extensions || []).map(function(extension) {
+        var model = new ExtensionModel(extension);
+        self.decorateItemRow(model);
+        return model;
+      }));
       self.switch.restoreList(state.localState.bulkToggleRestore || []);
       self.undoDepth((state.localState.undoStack || []).length);
 
