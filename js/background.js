@@ -394,22 +394,23 @@ importScripts(
         return normalizeCategoryText(value.about.name);
       }
 
-      var keys = Object.keys(value);
-      for (var i = 0; i < keys.length; i += 1) {
-        var nextValue = value[keys[i]];
-        if (Array.isArray(nextValue)) {
-          for (var j = 0; j < nextValue.length; j += 1) {
-            var fromArray = readCategoryFromJsonObject(nextValue[j]);
-            if (fromArray) {
-              return fromArray;
+      for (var key in value) {
+        if (Object.prototype.hasOwnProperty.call(value, key)) {
+          var nextValue = value[key];
+          if (Array.isArray(nextValue)) {
+            for (var j = 0; j < nextValue.length; j += 1) {
+              var fromArray = readCategoryFromJsonObject(nextValue[j]);
+              if (fromArray) {
+                return fromArray;
+              }
             }
+            continue;
           }
-          continue;
-        }
 
-        var nested = readCategoryFromJsonObject(nextValue);
-        if (nested) {
-          return nested;
+          var nested = readCategoryFromJsonObject(nextValue);
+          if (nested) {
+            return nested;
+          }
         }
       }
 
