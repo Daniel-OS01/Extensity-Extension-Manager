@@ -125,15 +125,22 @@
     return callArea(area, "remove", keys);
   }
 
+  // ⚡ Bolt Optimization: Replaced `{}` + `.filter()` with ES6 `Set` + `for` loop.
+  // This avoids callback overhead, improves iteration speed, and prevents prototype key collisions.
   function uniqueArray(items) {
-    var seen = {};
-    return (Array.isArray(items) ? items : []).filter(function(item) {
-      if (!item || seen[item]) {
-        return false;
+    if (!Array.isArray(items)) {
+      return [];
+    }
+    var result = [];
+    var seen = new Set();
+    for (var i = 0; i < items.length; i++) {
+      var item = items[i];
+      if (item && !seen.has(item)) {
+        seen.add(item);
+        result.push(item);
       }
-      seen[item] = true;
-      return true;
-    });
+    }
+    return result;
   }
 
   function sortProfileName(name) {
