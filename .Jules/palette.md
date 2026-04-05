@@ -1,0 +1,3 @@
+## 2026-04-05 - Standardize Interactive Element Accessibility
+**Learning:** When using FontAwesome icons inside interactive wrapper tags (like `<a>` or `<button>`) without text, standardizing the application of `aria-label` to the wrapper and explicitly adding `aria-hidden="true"` to the `<i>` tags significantly improves screen reader clarity, as it prevents screen readers from potentially reading out generic icon class names or getting confused by empty links.
+**Action:** Always add descriptive `aria-label`s on interactive wrappers and explicitly hide decorative inner `<i>` icons using `aria-hidden="true"` across all templates.
