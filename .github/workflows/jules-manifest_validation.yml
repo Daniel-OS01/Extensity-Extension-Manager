@@ -1,0 +1,40 @@
+name: PR Manifest Validation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Validate manifest contract
+        run: pnpm run check:manifest
+
+      - name: Safe to Commit Summary (Success)
+        if: success()
+        run: |
+          echo "SUMMARY: Safe to Commit."
+          echo "Manifest validation passed successfully. The manifest structure and dependencies are intact."
+
+      - name: AI Diagnostic Feedback (Failure)
+        if: failure()
+        run: |
+          echo "SUMMARY: Not Safe to Commit."
+          echo "TEST FAILED: Manifest validation failed."
+          echo "AI DIAGNOSTIC: Review the output of the 'Validate manifest contract' step. The 'manifest.json' file might contain invalid keys, missing required properties, or mismatched versions with 'package.json'. Ensure 'pnpm run check:manifest' passes locally."
+          sh -c 'exit 1'

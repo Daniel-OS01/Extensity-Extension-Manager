@@ -1,0 +1,40 @@
+name: PR Unit Tests
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Run unit tests
+        run: pnpm test
+
+      - name: Safe to Commit Summary (Success)
+        if: success()
+        run: |
+          echo "SUMMARY: Safe to Commit."
+          echo "All unit tests passed successfully. The pull request has not introduced regressions into the core logic covered by tests."
+
+      - name: AI Diagnostic Feedback (Failure)
+        if: failure()
+        run: |
+          echo "SUMMARY: Not Safe to Commit."
+          echo "TEST FAILED: One or more unit tests failed."
+          echo "AI DIAGNOSTIC: Review the test output above. Check if recent changes to 'js/' modules broke assumptions in 'tests/browser-modules.test.js' or other test files. Ensure 'pnpm test' passes locally before re-pushing. Pay attention to mocked DOM globals or synchronous vs asynchronous test behaviors. Look for unhandled promise rejections."
+          sh -c 'exit 1'

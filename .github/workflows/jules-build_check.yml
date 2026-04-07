@@ -1,0 +1,40 @@
+name: PR Build Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install global dependencies
+        run: npm install -g pnpm uglify-js sass
+
+      - name: Install project dependencies
+        run: pnpm install
+
+      - name: Build distributable extension
+        run: pnpm run build
+
+      - name: Safe to Commit Summary (Success)
+        if: success()
+        run: |
+          echo "SUMMARY: Safe to Commit."
+          echo "The extension build process completed successfully. The code can be packaged correctly."
+
+      - name: AI Diagnostic Feedback (Failure)
+        if: failure()
+        run: |
+          echo "SUMMARY: Not Safe to Commit."
+          echo "TEST FAILED: The build process failed."
+          echo "AI DIAGNOSTIC: Review the output of the 'Build distributable extension' step. Check for syntax errors in JS files that might break 'uglify-js' minification, or errors in CSS/SCSS files that prevent 'sass' from compiling. The Makefile relies on these tools. Verify that 'make dist' or 'pnpm run build' runs successfully locally."
+          sh -c 'exit 1'
