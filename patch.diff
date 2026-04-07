@@ -1,0 +1,86 @@
+--- a/tests/browser-modules.test.js
++++ b/tests/browser-modules.test.js
+@@ -179,50 +179,83 @@ test("storage sync defaults expose popup and profile display settings", () => {
+   assert.equal(defaults.profileDisplay, "landscape");
+   assert.equal(defaults.profileLayoutDirection, "ltr");
+   assert.equal(defaults.profileNameDirection, "ltr");
+   assert.equal(defaults.popupProfileBadgeTextMode, "compact");
+   assert.equal(defaults.popupProfileBadgeSingleWordChars, 4);
+   assert.equal(defaults.popupTableActionPanelPosition, "below_name");
+   assert.equal(defaults.showPopupVersionChips, false);
+   assert.equal(defaults.sortMode, "recent");
+   assert.equal(defaults.showProfilesExtensionMetadata, true);
+   assert.deepEqual(normalize(localDefaults.webStoreMetadata), {});
+ });
+
+ test("normalizeProfileMap always includes reserved Base", () => {
+   const root = loadModule("js/storage.js");
+
+   assert.deepEqual(normalize(root.ExtensityStorage.normalizeProfileMap({
+     Work: ["ext-1"]
+   })), {
+     __always_on: [],
+     __base: [],
+     __favorites: [],
+     Work: ["ext-1"]
+   });
+ });
+
++test("uniqueArray preserves order and skips falsy entries", () => {
++  const root = loadModule("js/storage.js");
++
++  assert.deepEqual(normalize(root.ExtensityStorage.uniqueArray([
++    "ext-1",
++    "",
++    "ext-1",
++    null,
++    "ext-2",
++    undefined,
++    "ext-2"
++  ])), [
++    "ext-1",
++    "ext-2"
++  ]);
++});
++
++test("uniqueArray keeps prototype-like keys without collisions", () => {
++  const root = loadModule("js/storage.js");
++
++  assert.deepEqual(normalize(root.ExtensityStorage.uniqueArray([
++    "__proto__",
++    "toString",
++    "__proto__",
++    "constructor",
++    "toString"
++  ])), [
++    "__proto__",
++    "toString",
++    "constructor"
++  ]);
++});
++
+
+ test("ensureSyncDefaults backfills missing profile direction keys", async () => {
+   const syncState = {};
+   const root = loadBrowserScript(path.join(repoRoot, "js/storage.js"), {
+     chrome: {
+       runtime: { lastError: null },
+       storage: {
+         sync: {
+           get(keys, callback) {
+             const payload = {};
+             (Array.isArray(keys) ? keys : Object.keys(keys)).forEach((key) => {
+               if (Object.prototype.hasOwnProperty.call(syncState, key)) {
+                 payload[key] = syncState[key];
+               }
+             });
+             callback(payload);
+           },
+           set(values, callback) {
+             Object.assign(syncState, values);
+             callback();
+           }
+         }
+       }
+     },
+     self: {}

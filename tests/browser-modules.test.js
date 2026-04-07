@@ -201,6 +201,39 @@ test("normalizeProfileMap always includes reserved Base", () => {
   });
 });
 
+test("uniqueArray preserves order and skips falsy entries", () => {
+  const root = loadModule("js/storage.js");
+
+  assert.deepEqual(normalize(root.ExtensityStorage.uniqueArray([
+    "ext-1",
+    "",
+    "ext-1",
+    null,
+    "ext-2",
+    undefined,
+    "ext-2"
+  ])), [
+    "ext-1",
+    "ext-2"
+  ]);
+});
+
+test("uniqueArray keeps prototype-like keys without collisions", () => {
+  const root = loadModule("js/storage.js");
+
+  assert.deepEqual(normalize(root.ExtensityStorage.uniqueArray([
+    "__proto__",
+    "toString",
+    "__proto__",
+    "constructor",
+    "toString"
+  ])), [
+    "__proto__",
+    "toString",
+    "constructor"
+  ]);
+});
+
 
 test("ensureSyncDefaults backfills missing profile direction keys", async () => {
   const syncState = {};
