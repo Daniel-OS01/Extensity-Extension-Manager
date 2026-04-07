@@ -73,16 +73,22 @@ importScripts(
 
   function buildRuleApplication(entries, url, tabId) {
     var normalizedEntries = cloneRuleEntries(entries);
+    var enabledIds = [];
+    var seen = new Set();
+    var protoCheck = {};
+    for (var i = 0; i < normalizedEntries.length; i++) {
+      var entry = normalizedEntries[i];
+      if (entry.enabled && entry.id && typeof protoCheck[entry.id] === "undefined" && !seen.has(entry.id)) {
+        seen.add(entry.id);
+        enabledIds.push(entry.id);
+      }
+    }
     return {
       entriesById: normalizedEntries.reduce(function(result, entry) {
         result[entry.id] = entry;
         return result;
       }, {}),
-      enabledIds: storage.uniqueArray(normalizedEntries.filter(function(entry) {
-        return entry.enabled;
-      }).map(function(entry) {
-        return entry.id;
-      })),
+      enabledIds: enabledIds,
       tabId: tabId,
       url: url || ""
     };

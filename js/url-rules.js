@@ -44,7 +44,11 @@
       }
     }
 
-    return wildcardToRegExp(pattern).test(url);
+    try {
+      return wildcardToRegExp(pattern).test(url);
+    } catch (error) {
+      return false;
+    }
   }
 
   function normalizeRule(rule) {
@@ -94,7 +98,7 @@
       });
 
       rule.enableIds.forEach(function(extensionId) {
-        if (!perExtension[extensionId]) {
+        if (typeof perExtension[extensionId] === "undefined") {
           perExtension[extensionId] = [];
         }
         perExtension[extensionId].push({
@@ -107,7 +111,7 @@
       });
 
       rule.disableIds.forEach(function(extensionId) {
-        if (!perExtension[extensionId]) {
+        if (typeof perExtension[extensionId] === "undefined") {
           perExtension[extensionId] = [];
         }
         perExtension[extensionId].push({
