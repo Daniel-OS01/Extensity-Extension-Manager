@@ -32,10 +32,6 @@ function loadUrlRules() {
   });
 }
 
-function normalize(value) {
-  return JSON.parse(JSON.stringify(value));
-}
-
 // --- isSupportedUrl ---
 
 test("isSupportedUrl accepts http:// and https:// URLs", () => {
