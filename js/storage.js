@@ -269,7 +269,18 @@
   }
 
   function makeId(prefix) {
-    return [prefix, Date.now().toString(36), Math.random().toString(36).slice(2, 8)].join("-");
+    var randomPart = "";
+    if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+      var array = new Uint32Array(1);
+      crypto.getRandomValues(array);
+      randomPart = array[0].toString(36).substring(0, 6);
+      while (randomPart.length < 6) {
+        randomPart += "0";
+      }
+    } else {
+      randomPart = Math.random().toString(36).slice(2, 8);
+    }
+    return [prefix, Date.now().toString(36), randomPart].join("-");
   }
 
   root.ExtensityStorage = {
