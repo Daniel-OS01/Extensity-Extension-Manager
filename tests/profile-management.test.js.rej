@@ -1,5 +1,5 @@
---- tests/profile-management.test.js
-+++ tests/profile-management.test.js
+--- profile-management.test.js
++++ profile-management.test.js
 @@ -54,23 +54,23 @@
    const result = root.ExtensityStorage.normalizeProfileMap({
      Work: ["ext-1", "ext-2", "ext-1"]

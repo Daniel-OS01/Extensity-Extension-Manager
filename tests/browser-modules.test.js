@@ -70,6 +70,7 @@ function createChromeBackgroundStub(overrides = {}) {
       onActivated: { addListener() {} },
       onRemoved: { addListener() {} },
       onUpdated: { addListener() {} },
+      onRemoved: { addListener() {} },
       query() {},
       sendMessage() {}
     },
