@@ -183,7 +183,7 @@ test("storage sync defaults expose popup and profile display settings", () => {
   assert.equal(defaults.popupProfileBadgeSingleWordChars, 4);
   assert.equal(defaults.popupTableActionPanelPosition, "below_name");
   assert.equal(defaults.showPopupVersionChips, false);
-  assert.equal(defaults.sortMode, "recent");
+  assert.equal(defaults.sortMode, "alpha");
   assert.equal(defaults.showProfilesExtensionMetadata, true);
   assert.deepEqual(normalize(localDefaults.webStoreMetadata), {});
 });
@@ -195,7 +195,6 @@ test("normalizeProfileMap always includes reserved Base", () => {
     Work: ["ext-1"]
   })), {
     __always_on: [],
-    __base: [],
     __favorites: [],
     Work: ["ext-1"]
   });

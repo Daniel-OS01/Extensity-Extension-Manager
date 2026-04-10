@@ -50,7 +50,7 @@
     itemSpacingPx: 0,
     itemVerticalSpacePx: 0,
     showReserved: true,
-    sortMode: "recent",
+    sortMode: "alpha",
     viewMode: "list",
     urlRuleTimeoutMinutes: 0,
     accentColor: "#4a90d9",
@@ -74,7 +74,7 @@
     webStoreMetadata: {}
   };
 
-  var profileNames = ["__always_on", "__base", "__favorites"];
+  var profileNames = ["__always_on", "__favorites"];
   var syncProfileDirectionDefaults = {
     profileLayoutDirection: syncDefaults.profileLayoutDirection,
     profileNameDirection: syncDefaults.profileNameDirection
