@@ -1,0 +1,3 @@
+## 2026-04-10 - Accessible Icon-Only Links in Headers
+**Learning:** Found an accessibility anti-pattern in the main header (`index.html`) where `title` attributes were placed directly on `<i>` (FontAwesome) elements inside `<a>` tags without any screen reader labels on the link itself. This causes tiny hover targets for tooltips and poor screen reader announcements.
+**Action:** Always move `title` attributes to the interactive wrapper element (e.g., `<a>` or `<button>`), add a matching `aria-label` to the wrapper for screen readers, and explicitly hide the decorative icon with `aria-hidden="true"`.
