@@ -159,6 +159,13 @@
       }
       result[name] = uniqueArray(source[name]);
     });
+    // Ensure reserved profiles always exist
+    if (!result.__always_on) {
+      result.__always_on = [];
+    }
+    if (!result.__favorites) {
+      result.__favorites = [];
+    }
     profileNames.forEach(function(name) {
       if (!result[name]) {
         result[name] = [];
