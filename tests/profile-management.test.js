@@ -63,9 +63,10 @@ test("normalizeProfileMap with null input returns only reserved profiles", () =>
   const result = root.ExtensityStorage.normalizeProfileMap(null);
   assert.deepEqual(normalize(result.__always_on), []);
   assert.deepEqual(normalize(result.__favorites), []);
+  assert.deepEqual(normalize(result.__base), []);
   const keys = Object.keys(result);
   // normalizeProfileMap returns {} instead of reserved profiles when null
-  assert.equal(keys.length, 2, "null input must produce exactly the two reserved profiles");
+  assert.equal(keys.length, 3, "null input must produce exactly the reserved profiles");
 });
 
 test("normalizeProfileMap ignores falsy extension IDs within a profile", () => {
@@ -73,7 +74,7 @@ test("normalizeProfileMap ignores falsy extension IDs within a profile", () => {
   const result = root.ExtensityStorage.normalizeProfileMap({
     Work: ["ext-1", null, "", undefined, "ext-2"]
   });
-  assert.deepEqual(result.Work, ["ext-1", "ext-2"]);
+  assert.deepEqual(normalize(result.Work), ["ext-1", "ext-2"]);
 });
 
 // --- profileMapToItems ---
