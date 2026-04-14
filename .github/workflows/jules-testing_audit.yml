@@ -1,0 +1,34 @@
+name: Testing Audit
+on:
+  pull_request:
+    branches:
+      - main
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install Dependencies
+        run: pnpm install
+
+      - name: Run Test Suite
+        id: run_tests
+        run: pnpm test
+
+      - name: Summary Output
+        if: always()
+        run: |
+          if [ "${{ steps.run_tests.outcome }}" == "success" ]; then
+            echo "✅ It is safe to commit. The test suite passed successfully."
+          else
+            echo "❌ Tests failed. Diagnostics for AI coding assistant:"
+            echo "Please review test logs above to identify the failing module or edge case."
+          fi
