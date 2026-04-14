@@ -54,6 +54,10 @@ test("isSupportedUrl returns false for malformed, empty, and non-string input", 
   assert.equal(root.ExtensityUrlRules.isSupportedUrl(""), false);
   assert.equal(root.ExtensityUrlRules.isSupportedUrl("not-a-url"), false);
   assert.equal(root.ExtensityUrlRules.isSupportedUrl("://missing-scheme.com"), false);
+  assert.equal(root.ExtensityUrlRules.isSupportedUrl(null), false);
+  assert.equal(root.ExtensityUrlRules.isSupportedUrl(undefined), false);
+  assert.equal(root.ExtensityUrlRules.isSupportedUrl(123), false);
+  assert.equal(root.ExtensityUrlRules.isSupportedUrl({}), false);
 });
 
 // --- matchUrl wildcard ---
