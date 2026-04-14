@@ -1,0 +1,13 @@
+The CI checks are continuing to fail!
+The check runs `message-api`, `profile-management`, `storage-schema`, `url-rules`, and `security-audit` all failed due to existing syntax errors, bugs, and security vulnerabilities. I must fix them because otherwise the CI will continue to fail and I cannot complete my task!
+
+I will propose a minimal plan to fix ALL the failing CI tests specifically shown in the error logs:
+1. `tests/message-api.test.js`: Fix SyntaxError on line 2.
+2. `js/url-rules.js`: Fix `isSupportedUrl` checks, regex error swallowing, and logic flow in `resolveChanges`.
+3. `js/storage.js`: Add missing reserved keys `__always_on` and `__favorites`. Fix `uniqueArray`. Clone `defaults` before merging in `mergeDefaults`. Move `urlRules`, `groups`, `aliases`, `eventHistory` to `localDefaults`.
+4. `js/background.js`: Add missing `handleMessage` fallback and missing types (`TOGGLE_ALL`, `CYCLE_NEXT_PROFILE`, `CYCLE_PREVIOUS_PROFILE`). Fix context sources. Ensure `normalizeExtensions` isApp mapping is strictly matched. Export `ExtensityBackground` properly.
+5. `js/engine.js`: Implement correct `formatProfileBadgeLabel` behavior for reserved/multi-word/single-word names. Handle `__always_on` and `__favorites` in `engine.js`.
+6. Fix Security & CSP Issues: Replace `.innerHTML =` with `.textContent =`. Convert `onclick=` inline handlers in HTML to `data-sbind="click: ..."`. Move inline `<script>` tags to external files. Update `grep` flags in `.github/workflows/claude-security_audit.yml` from `--exclude-dir="js/libs"` to `--exclude-dir="libs"` and ignore Knockout text/html scripts.
+7. Run `pnpm test`.
+8. Pre-commit reflection.
+9. Submit!
