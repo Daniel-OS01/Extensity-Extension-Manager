@@ -1,0 +1,1 @@
+Update CI test match path to run tests instead of exiting with 1.
