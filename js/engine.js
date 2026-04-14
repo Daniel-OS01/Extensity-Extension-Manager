@@ -7,58 +7,6 @@
     return text.slice(0, Math.max(0, maxLength - 1)) + "…";
   }
 
-  function chromeCall(target, method, args) {
-    return new Promise(function(resolve, reject) {
-      var finalArgs = (args || []).slice();
-      finalArgs.push(function(result) {
-        if (chrome.runtime.lastError) {
-          reject(new Error(chrome.runtime.lastError.message));
-          return;
-        }
-        resolve(result);
-      });
-      target[method].apply(target, finalArgs);
-    });
-  }
-
-  function openTab(url) {
-    return chromeCall(chrome.tabs, "create", [{ active: true, url: url }]);
-  }
-
-  function buildManageExtensionUrl(extensionId) {
-    return "chrome://extensions/?id=" + encodeURIComponent(extensionId);
-  }
-
-  function buildPermissionsPageUrl(extensionId) {
-    return buildManageExtensionUrl(extensionId) + "#permissions";
-  }
-
-  function copyText(value) {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      return navigator.clipboard.writeText(value);
-    }
-
-    return new Promise(function(resolve, reject) {
-      var input = document.createElement("textarea");
-      input.value = value;
-      input.setAttribute("readonly", "readonly");
-      input.style.position = "fixed";
-      input.style.opacity = "0";
-      document.body.appendChild(input);
-      input.select();
-      try {
-        if (!document.execCommand("copy")) {
-          throw new Error("Copy command failed.");
-        }
-        resolve();
-      } catch (error) {
-        reject(error);
-      } finally {
-        document.body.removeChild(input);
-      }
-    });
-  }
-
   ko.extenders.countable = function(target) {
     target.count = ko.computed(function() {
       return target().length;
@@ -105,14 +53,6 @@
       });
     });
   }
-  function exportFilename(prefix, ext) {
-    var d = new Date();
-    var dd = String(d.getDate()).padStart(2, "0");
-    var mm = String(d.getMonth() + 1).padStart(2, "0");
-    var yyyy = d.getFullYear();
-    return prefix + "-" + yyyy + "-" + mm + "-" + dd + "." + ext;
-  }
-
 
   function downloadText(filename, content, mimeType) {
     var blob = new Blob([content], { type: mimeType || "text/plain;charset=utf-8" });
@@ -191,13 +131,11 @@
 
   var reservedNames = {
     "__always_on": "Always On",
-    "__base": "Base",
     "__favorites": "Favorites"
   };
 
   var reservedIcons = {
     "__always_on": "fa-lightbulb-o",
-    "__base": "fa-home",
     "__default": "fa-user-circle-o",
     "__favorites": "fa-star"
   };
@@ -224,7 +162,7 @@
   }
 
   function defaultCategoryForInstallType(installType) {
-    return installType === "development" ? "Developer" : "";
+    return installType === "development" ? "Developer" : "Uncategorized";
   }
 
   function profileDisplayName(name) {
@@ -248,9 +186,6 @@
 
   function formatPopupProfileBadgeLabel(profileName, mode, singleWordChars) {
     var displayName = profileDisplayName(profileName);
-    if (mode === "icons_only") {
-      return "";
-    }
     if (mode === "compact") {
       return compactProfileBadgeLabel(displayName, singleWordChars);
     }
@@ -262,41 +197,14 @@
     return pruneText(displayName, 30);
   }
 
-  var PROFILE_COLORS = [
-    "#E74C3C","#E67E22","#F1C40F","#2ECC71","#1ABC9C",
-    "#3498DB","#9B59B6","#E91E63","#00BCD4","#607D8B"
-  ];
-
-  var PROFILE_ICONS = [
-    "fa-rocket","fa-bolt","fa-star","fa-fire","fa-lightbulb-o",
-    "fa-paint-brush","fa-globe","fa-shield","fa-cogs","fa-flask",
-    "fa-leaf","fa-diamond","fa-music","fa-gamepad","fa-bookmark",
-    "fa-cloud","fa-paper-plane-o","fa-puzzle-piece","fa-code","fa-graduation-cap"
-  ];
-
-  function randomProfileColor() {
-    return PROFILE_COLORS[Math.floor(Math.random() * PROFILE_COLORS.length)];
-  }
-
-  function randomProfileIcon() {
-    return PROFILE_ICONS[Math.floor(Math.random() * PROFILE_ICONS.length)];
-  }
-
-  function ProfileModel(name, items, meta) {
+  function ProfileModel(name, items) {
     var self = this;
-    var m = meta || {};
     self.name = ko.observable(name);
     self.items = ko.observableArray(root.ExtensityStorage.uniqueArray(items || []));
     self.selected = ko.observable(false);
-    self.activate = function() { return false; };
-    self.requestRemove = function() { return false; };
 
     self.reserved = ko.pureComputed(function() {
       return self.name().indexOf("__") === 0;
-    });
-
-    self.listVisible = ko.pureComputed(function() {
-      return !self.reserved();
     });
 
     self.hasItems = ko.pureComputed(function() {
@@ -313,19 +221,13 @@
       return reservedNames[self.name()] || pruneText(self.name(), 30);
     });
 
-    self.popupLabel = ko.observable(self.short_name());
-
-    self.userIcon = ko.observable(m.icon || m.emoji || randomProfileIcon());
-
     self.icon = ko.pureComputed(function() {
-      return reservedIcons[self.name()] || self.userIcon();
+      return reservedIcons[self.name()] || reservedIcons.__default;
     });
 
     self.containsId = function(extensionId) {
-      return self.items().indexOf(extensionId) !== -1;
+      return self.items.indexOf(extensionId) !== -1;
     };
-
-    self.color = ko.observable(m.color || randomProfileColor());
 
     self.rename = function(nextName) {
       var trimmed = (nextName || "").trim();
@@ -343,10 +245,7 @@
     self.applyState(initialState || { items: [], localProfiles: false });
 
     self.add = function(name, items) {
-      var profile = new ProfileModel(name, items || [], {
-        color: randomProfileColor(),
-        icon: randomProfileIcon()
-      });
+      var profile = new ProfileModel(name, items || []);
       self.items.push(profile);
       return profile;
     };
@@ -369,10 +268,6 @@
       return self.find("__always_on");
     };
 
-    self.base = function() {
-      return self.find("__base");
-    };
-
     self.favorites = function() {
       return self.find("__favorites");
     };
@@ -386,23 +281,13 @@
         return result;
       }, {});
     };
-
-    self.toMeta = function() {
-      return self.items().reduce(function(result, profile) {
-        if (profile.reserved()) {
-          return result;
-        }
-        result[profile.name()] = { color: profile.color(), icon: profile.userIcon() };
-        return result;
-      }, {});
-    };
   }
 
   ProfileCollectionModel.prototype.applyState = function(state) {
     var self = this;
     self.localProfiles(state && state.localProfiles ? true : false);
     self.items((state && state.items ? state.items : []).map(function(profile) {
-      return new ProfileModel(profile.name, profile.items, { color: profile.color, icon: profile.icon });
+      return new ProfileModel(profile.name, profile.items);
     }));
   };
 
@@ -434,7 +319,6 @@
     self.metadataLoading = ko.observable(false);
     self.metadataSource = ko.observable("");
     self.profileBadges = ko.observableArray([]);
-    self.selectedProfileId = ko.observable("");
 
     self.disabled = ko.pureComputed(function() {
       return !self.status();
@@ -468,7 +352,7 @@
       if (self.category()) {
         pieces.push(self.category());
       }
-      return pieces.join(" — ");
+      return pieces.join(" - ");
     });
 
     self.copyLinkUrl = ko.pureComputed(function() {
@@ -477,29 +361,6 @@
 
     self.storeLinkAvailable = ko.pureComputed(function() {
       return !!self.storeUrl();
-    });
-
-    self.copyLinkAvailable = ko.pureComputed(function() {
-      return !!self.copyLinkUrl();
-    });
-
-    self.canRemove = ko.pureComputed(function() {
-      return self.installType() !== "admin";
-    });
-
-    self.toggleLabel = ko.pureComputed(function() {
-      return self.status() ? "Disable" : "Enable";
-    });
-
-    self.toggleIconClass = ko.pureComputed(function() {
-      return self.status() ? "fa-toggle-on" : "fa-toggle-off";
-    });
-
-    self.versionCategoryLine = ko.pureComputed(function() {
-      var parts = [];
-      if (self.version()) { parts.push(self.version()); }
-      if (self.category()) { parts.push(self.category()); }
-      return parts.join(" \u2014 ");
     });
 
     self.applySnapshot(data || {});
@@ -526,11 +387,7 @@
     this.usageCount(data.usageCount || 0);
     this.version(data.version || "");
     this.descriptionLine(firstDescriptionLine(data.descriptionLine || data.description || ""));
-    this.category(
-      typeof data.category === "string"
-        ? data.category
-        : defaultCategoryForInstallType(data.installType)
-    );
+    this.category(data.category || defaultCategoryForInstallType(data.installType));
     this.storeUrl(
       data.storeUrl || (isChromeWebStoreUrl(data.homepageUrl) ? data.homepageUrl : "")
     );
@@ -598,20 +455,7 @@
     });
   };
 
-
-  function applyThemeClasses(options) {
-    document.body.classList.toggle("dark-mode", options.colorScheme === "dark");
-    document.body.classList.toggle("light-mode", options.colorScheme === "light");
-  }
-
   var ExtensityApi = {
-    assignExtensionProfile: function(extensionId, profileNameOrNull) {
-      return chromeMessage({
-        extensionId: extensionId,
-        profileName: profileNameOrNull,
-        type: "ASSIGN_EXTENSION_PROFILE"
-      });
-    },
     applyProfile: function(profileName) {
       return chromeMessage({ profileName: profileName, type: "APPLY_PROFILE" });
     },
@@ -621,11 +465,9 @@
     getState: function() {
       return chromeMessage({ type: "GET_STATE" });
     },
-    getExtensionMetadata: function(extensionIds, options) {
-      var config = options || {};
+    getExtensionMetadata: function(extensionIds) {
       return chromeMessage({
         extensionIds: extensionIds,
-        forceRefresh: !!config.forceRefresh,
         type: "GET_EXTENSION_METADATA"
       });
     },
@@ -661,12 +503,6 @@
     saveUrlRules: function(urlRules) {
       return chromeMessage({ type: "SAVE_URL_RULES", urlRules: urlRules });
     },
-    testUrlRules: function(url) {
-      return chromeMessage({
-        type: "TEST_URL_RULES",
-        url: url
-      });
-    },
     setExtensionState: function(extensionId, enabled, context) {
       return chromeMessage({
         context: context,
@@ -689,81 +525,12 @@
         extensionId: extensionId,
         type: "UNINSTALL_EXTENSION"
       });
-    },
-    updateExtensionProfileMembership: function(extensionId, profileName, shouldInclude) {
-      return chromeMessage({
-        extensionId: extensionId,
-        profileName: profileName,
-        shouldInclude: !!shouldInclude,
-        type: "UPDATE_EXTENSION_PROFILE_MEMBERSHIP"
-      });
     }
   };
-
-  function inferTooltipFromElement(element) {
-    var ariaLabel = (element.getAttribute("aria-label") || "").trim();
-    if (ariaLabel) {
-      return ariaLabel;
-    }
-
-    var labelledBy = (element.getAttribute("aria-labelledby") || "").trim();
-    if (labelledBy) {
-      var labelledElement = document.getElementById(labelledBy);
-      if (labelledElement) {
-        var labelledText = (labelledElement.textContent || "").trim();
-        if (labelledText) {
-          return labelledText;
-        }
-      }
-    }
-
-    if (element.id) {
-      var label = document.querySelector('label[for="' + element.id + '"]');
-      if (label) {
-        var labelText = (label.textContent || "").trim();
-        if (labelText) {
-          return labelText;
-        }
-      }
-    }
-
-    var text = (element.textContent || element.value || element.placeholder || "").trim();
-    if (text) {
-      return text.replace(/\s+/g, " ");
-    }
-
-    return "";
-  }
-
-  function applyAutoTooltips(container) {
-    if (typeof document === "undefined") {
-      return;
-    }
-
-    var rootNode = container || document;
-    var nodes = rootNode.querySelectorAll("button, input, select, textarea, a, [data-tooltip]");
-    Array.prototype.forEach.call(nodes, function(node) {
-      if (!node || node.getAttribute("title")) {
-        return;
-      }
-
-      var explicit = (node.getAttribute("data-tooltip") || "").trim();
-      if (explicit) {
-        node.setAttribute("title", explicit);
-        return;
-      }
-
-      var inferred = inferTooltipFromElement(node);
-      if (inferred) {
-        node.setAttribute("title", inferred);
-      }
-    });
-  }
 
   root.DismissalsCollection = DismissalsCollection;
   root.ExtensityApi = ExtensityApi;
   root.ExtensityIO = {
-    exportFilename: exportFilename,
     downloadText: downloadText,
     readFileAsText: readFileAsText
   };
@@ -775,26 +542,10 @@
   root.ExtensityPopupLabels = {
     formatProfileBadgeLabel: formatPopupProfileBadgeLabel
   };
-  root.ExtensityTooltips = {
-    applyAutoTooltips: applyAutoTooltips
-  };
   root.ExtensityExtensionMetadata = {
     defaultCategoryForInstallType: defaultCategoryForInstallType,
     firstDescriptionLine: firstDescriptionLine,
     isChromeWebStoreUrl: isChromeWebStoreUrl
   };
   root.fadeOutMessage = fadeOutMessage;
-  root.ExtensityEngine = {
-    PROFILE_ICONS: PROFILE_ICONS
-  };
-  root.ExtensityUtils = {
-    applyThemeClasses: applyThemeClasses,
-    buildManageExtensionUrl: buildManageExtensionUrl,
-    buildPermissionsPageUrl: buildPermissionsPageUrl,
-    chromeCall: chromeCall,
-    clampInteger: clampInteger,
-    copyText: copyText,
-    openTab: openTab,
-    pruneText: pruneText
-  };
 })(window);

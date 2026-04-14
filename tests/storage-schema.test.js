@@ -189,3 +189,14 @@ test("profileMapToItems sorts reserved profiles before alphabetical user profile
   assert.ok(names.indexOf("__favorites") < names.indexOf("Aaa"), "__favorites must sort before Aaa");
   assert.ok(names.indexOf("Aaa") < names.indexOf("Zzz"), "Aaa must sort before Zzz");
 });
+
+test("sortProfileName handles edge cases and sorts properly", () => {
+  const root = loadStorage();
+
+  assert.equal(root.ExtensityStorage.sortProfileName("Aaa"), "AAA", "Regular name is uppercased");
+  assert.equal(root.ExtensityStorage.sortProfileName("__always_on"), " __ALWAYS_ON", "Reserved profile names get a space prepended");
+  assert.equal(root.ExtensityStorage.sortProfileName("__favorites"), " __FAVORITES", "Reserved profile names get a space prepended");
+  assert.equal(root.ExtensityStorage.sortProfileName("_not_reserved"), "_NOT_RESERVED", "Names starting with a single underscore don't get a space");
+  assert.equal(root.ExtensityStorage.sortProfileName("my__name"), "MY__NAME", "Names containing double underscore don't get a space");
+  assert.equal(root.ExtensityStorage.sortProfileName(""), "", "Empty string handled properly");
+});

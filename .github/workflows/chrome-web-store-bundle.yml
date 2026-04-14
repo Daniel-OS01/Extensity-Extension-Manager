@@ -1,0 +1,49 @@
+name: Chrome Web Store Bundle
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  package-submission:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          cache: npm
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate manifest
+        run: npm run check:manifest
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build extension package
+        run: make dist
+
+      - name: Create Chrome Web Store submission bundle
+        run: npm run bundle:chrome-store
+
+      - name: Read manifest version
+        id: manifest
+        run: echo "version=$(node -p \"require('./manifest.json').version\")" >> "$GITHUB_OUTPUT"
+
+      - name: Upload Chrome Web Store bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: chrome-web-store-submission-v${{ steps.manifest.outputs.version }}
+          path: artifacts/chrome-web-store/

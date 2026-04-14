@@ -27,16 +27,6 @@
     }
 
     if (method === "regex") {
-      // Basic ReDoS protection: limit pattern and input length.
-      if (pattern.length > 512 || (url && url.length > 2048)) {
-        return false;
-      }
-
-      // Basic heuristic for dangerous nested quantifiers: (a+)+, (a*)*, etc.
-      if (/(\([^\)]+[\*\+\?]\)[\*\+\?])/.test(pattern)) {
-        return false;
-      }
-
       try {
         return new RegExp(pattern).test(url);
       } catch (error) {
@@ -55,7 +45,6 @@
       id: rule.id || storage.makeId("rule"),
       matchMethod: rule.matchMethod === "regex" ? "regex" : "wildcard",
       name: (rule.name || "").trim() || "Untitled Rule",
-      timeout: typeof rule.timeout === "number" && isFinite(rule.timeout) ? Math.max(0, Math.floor(rule.timeout)) : 0,
       urlPattern: (rule.urlPattern || "").trim()
     };
   }
@@ -64,19 +53,11 @@
     return (Array.isArray(rules) ? rules : []).map(normalizeRule);
   }
 
-  function analyzeUrl(url, rules) {
+  function resolveChanges(url, rules) {
     var desired = {};
-    var matchedRules = [];
-    var perExtension = {};
 
     if (!isSupportedUrl(url)) {
-      return {
-        finalChanges: desired,
-        matchedRules: matchedRules,
-        perExtension: perExtension,
-        result: "unsupported_url",
-        url: url
-      };
+      return desired;
     }
 
     normalizeRules(rules).forEach(function(rule) {
@@ -84,57 +65,19 @@
         return;
       }
 
-      matchedRules.push({
-        disableIds: rule.disableIds.slice(),
-        enableIds: rule.enableIds.slice(),
-        id: rule.id,
-        matchMethod: rule.matchMethod,
-        name: rule.name,
-        urlPattern: rule.urlPattern
-      });
-
       rule.enableIds.forEach(function(extensionId) {
-        if (!perExtension[extensionId]) {
-          perExtension[extensionId] = [];
-        }
-        perExtension[extensionId].push({
-          enabled: true,
-          ruleId: rule.id,
-          ruleName: rule.name,
-          urlPattern: rule.urlPattern
-        });
-        desired[extensionId] = { enabled: true, ruleId: rule.id, ruleName: rule.name, urlPattern: rule.urlPattern };
+        desired[extensionId] = { enabled: true, ruleId: rule.id };
       });
 
       rule.disableIds.forEach(function(extensionId) {
-        if (!perExtension[extensionId]) {
-          perExtension[extensionId] = [];
-        }
-        perExtension[extensionId].push({
-          enabled: false,
-          ruleId: rule.id,
-          ruleName: rule.name,
-          urlPattern: rule.urlPattern
-        });
-        desired[extensionId] = { enabled: false, ruleId: rule.id, ruleName: rule.name, urlPattern: rule.urlPattern };
+        desired[extensionId] = { enabled: false, ruleId: rule.id };
       });
     });
 
-    return {
-      finalChanges: desired,
-      matchedRules: matchedRules,
-      perExtension: perExtension,
-      result: matchedRules.length ? "matched" : "no_match",
-      url: url
-    };
-  }
-
-  function resolveChanges(url, rules) {
-    return analyzeUrl(url, rules).finalChanges;
+    return desired;
   }
 
   root.ExtensityUrlRules = {
-    analyzeUrl: analyzeUrl,
     isSupportedUrl: isSupportedUrl,
     matchUrl: matchUrl,
     normalizeRule: normalizeRule,

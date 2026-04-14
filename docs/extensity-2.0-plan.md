@@ -40,25 +40,17 @@
 
 The `syncDefaults` object defines all settings stored in `chrome.storage.sync`. The `OptionsCollection` class in `js/engine.js` auto-creates a `ko.observable` for every key in this object, so any new key added here is immediately available as `options.<key>` in all four pages without additional wiring.
 
-Current keys (after the popup, dashboard, and settings follow-up rounds):
+Current keys (as of Round 2):
 
 ```
 activeProfile, appsFirst, colorScheme, contrastMode, driveSync, dynamicSizing,
-enabledFirst, enableReminders, debugHistoryVerbose, extensionIconSizePx, fontSizePx,
-groupApps, keepAlwaysOn, lastDriveSync, localProfiles, migration, migration_2_0_0,
-migration_popupListStyle, profileDisplay, profileExtensionSide, profileLayoutDirection,
-profileMeta, profileNameDirection, popupActionRowLayout, popupHeaderIconSize,
-popupListStyle, popupMainPaddingPx, popupProfileBadgeSingleWordChars,
-popupProfileBadgeTextMode, popupProfilePillShowIcons, popupProfilePillSingleWordChars,
-popupProfilePillTextMode, popupScrollbarMode, popupTableActionPanelPosition,
-popupWidthPx, reminderDelayMinutes, searchBox, showAlwaysOnBadge, showHeader,
-showOptions, showPopupSort, showPopupVersionChips, showProfilesExtensionMetadata,
-showReserved, sortMode, itemPaddingPx, itemPaddingXPx, itemNameGapPx,
-itemSpacingPx, itemVerticalSpacePx, urlRuleDisableOnClose, urlRuleTimeoutMinutes,
-viewMode, accentColor, popupBgColor, fontFamily
+enabledFirst, enableReminders, fontSizePx, groupApps, itemPaddingPx, itemSpacingPx,
+keepAlwaysOn, lastDriveSync, localProfiles, migration, migration_2_0_0,
+popupWidthPx, profileDisplay, reminderDelayMinutes, searchBox, showAlwaysOnBadge,
+showHeader, showOptions, showReserved, sortMode, viewMode
 ```
 
-Note: `fontSize` and `spacingScale` (string enums) were removed in Round 2 and replaced with numeric pixel-based settings. Later rounds expanded popup settings further with profile-pill modes, gutter/scrollbar controls, header icon size, URL-rule timing settings, and profile-direction settings.
+Note: `fontSize` and `spacingScale` (string enums) were removed in Round 2 and replaced with `fontSizePx`, `itemPaddingPx`, `itemSpacingPx`, and `popupWidthPx` (numeric pixels).
 
 ### UI Surface Split
 
@@ -75,21 +67,14 @@ Rather than body CSS classes for sizing, all popup dimensions are controlled via
 // In js/index.js — reactive CSS var application
 ko.computed(function() {
   var style = document.documentElement.style;
-  style.setProperty("--font-size", self.opts.fontSizePx() + "px");
+  style.setProperty("--font-size",     self.opts.fontSizePx() + "px");
   style.setProperty("--item-padding-v", self.opts.itemPaddingPx() + "px");
-  style.setProperty("--item-padding-v-adjust", Math.max(self.opts.itemPaddingPx(), 0) + "px");
-  style.setProperty("--item-padding-x", self.opts.itemPaddingXPx() + "px");
-  style.setProperty("--item-name-gap", self.opts.itemNameGapPx() + "px");
-  style.setProperty("--item-spacing", self.opts.itemSpacingPx() + "px");
-  style.setProperty("--item-v-space", self.opts.itemVerticalSpacePx() + "px");
-  style.setProperty("--item-v-space-adjust", Math.max(self.opts.itemVerticalSpacePx(), 0) + "px");
-  style.setProperty("--extension-icon-size", self.opts.extensionIconSizePx() + "px");
-  style.setProperty("--popup-main-padding-x", self.opts.popupMainPaddingPx() + "px");
-  style.setProperty("--popup-width", self.opts.popupWidthPx() + "px");
+  style.setProperty("--item-spacing",  self.opts.itemSpacingPx() + "px");
+  style.setProperty("--popup-width",   self.opts.popupWidthPx() + "px");
 });
 ```
 
-The options, profiles, and dashboard pages call a non-reactive `applyCssVars(options)` function inside `applyState` to apply the same variables on page load. Popup body classes carry the rest of the layout choices such as list style, header icon density, scrollbar mode, table-row action-panel position, and profile-pill mode.
+The options, profiles, and dashboard pages call a non-reactive `applyCssVars(options)` function inside `applyState` to apply the same variables on page load.
 
 Dark mode uses CSS variables for all surface colors. Three additional variables (`--header-bg`, `--btn-bg`, `--input-bg`) cover the popup header, sort toolbar, and search bar — the areas that previously used hardcoded `rgba(255,255,255,...)` values. Full dark mode coverage requires these variables to be defined in both `@media (prefers-color-scheme: dark)` and `body.dark-mode` selectors.
 
@@ -231,26 +216,17 @@ History is capped at 500 records. Pruning removes oldest first.
 - Profile badges with 5-color cycling in popup extension rows.
 - `applyCssVars` added to options, profiles, and dashboard pages.
 
-### Phase 10: Dashboard, Rules, And Settings Stabilization (Round 3) — Complete
+### Phase 10: Dashboard Fix + Profiles Layout + Dark Mode Inputs (Round 3) — Pending
 
-- Dashboard tab visibility now uses explicit pureComputeds.
-- Popup/settings spacing and icon-size controls are wired through CSS variables.
-- URL rule close/timeout handling and history metadata were stabilized.
-- Dashboard history now carries richer rule/debug context.
+See `.claude/plans/zazzy-hugging-pearl.md` for full details.
 
-### Phase 11: Rule Analysis And Dashboard Debugging (Round 4) — Complete
-
-- Shared rule-analysis path added so dashboard dry-run testing uses the same precedence logic as live rule evaluation.
-- Added non-mutating background rule testing for sample URLs.
-- Dashboard can filter history and jump from rule-linked history rows back to the rules editor.
-- Docs/status files updated to reduce stale pending language.
-
-### Phase 12: Popup Density Defaults And Permission Banner Expansion (Round 5) — Complete
-
-- Added popup header icon size, popup main-padding, and popup scrollbar settings.
-- Added popup profile-button `icons_only` mode and denser popup defaults.
-- Extended Chrome Web Store permission banners across Dashboard, Options, and Profiles.
-- Fixed popup gutter, scrollbar targeting, and table-row chevron direction follow-up issues.
+Key items:
+- Fix dashboard tab visibility (replace `isTab()` calls with explicit pureComputeds).
+- Fix dark mode input/select background (options.css hardcoded `#fff`).
+- Fix hardcoded light-mode colors in dashboard.css.
+- Swap profiles page layout: extension list on left, profile management on right.
+- Add extension sort options on profiles page (alpha, popular, profile count).
+- Allow item padding to be set to 0 (change min from 2 to 0 in options.html).
 
 ## Definition Of Done
 
@@ -260,4 +236,3 @@ History is capped at 500 records. Pruning removes oldest first.
 - The popup, options page, profiles page, and dashboard share one consistent state model through the background service worker.
 - All four pages render correctly in dark mode without hardcoded light-mode colors.
 - Dashboard tab system switches sections reliably.
-- Dashboard rule testing reflects the same URL-rule precedence logic used by live background evaluation.

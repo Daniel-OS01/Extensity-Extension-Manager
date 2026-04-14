@@ -48,6 +48,58 @@ document.addEventListener("DOMContentLoaded", function() {
     }
   }
 
+  function chromeCall(target, method, args) {
+    return new Promise(function(resolve, reject) {
+      var finalArgs = (args || []).slice();
+      finalArgs.push(function(result) {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+          return;
+        }
+        resolve(result);
+      });
+      target[method].apply(target, finalArgs);
+    });
+  }
+
+  function openTab(url) {
+    return chromeCall(chrome.tabs, "create", [{ active: true, url: url }]);
+  }
+
+  function buildManageExtensionUrl(extensionId) {
+    return "chrome://extensions/?id=" + encodeURIComponent(extensionId);
+  }
+
+  function buildPermissionsPageUrl(extensionId) {
+    return buildManageExtensionUrl(extensionId) + "#permissions";
+  }
+
+  function copyText(value) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(value);
+    }
+
+    return new Promise(function(resolve, reject) {
+      var input = document.createElement("textarea");
+      input.value = value;
+      input.setAttribute("readonly", "readonly");
+      input.style.position = "fixed";
+      input.style.opacity = "0";
+      document.body.appendChild(input);
+      input.select();
+      try {
+        if (!document.execCommand("copy")) {
+          throw new Error("Copy command failed.");
+        }
+        resolve();
+      } catch (error) {
+        reject(error);
+      } finally {
+        document.body.removeChild(input);
+      }
+    });
+  }
+
   function SearchViewModel() {
     var self = this;
     self.q = ko.observable("");
@@ -119,7 +171,6 @@ document.addEventListener("DOMContentLoaded", function() {
     self.switch = new SwitchViewModel(self);
     self.activeProfile = ko.observable(null);
     self.expandedExtensionId = ko.observable(null);
-    self.extensionProfileMembership = ko.observable({});
     self.undoDepth = ko.observable(0);
 
     self.bodyClass = ko.pureComputed(function() {
@@ -134,286 +185,22 @@ document.addEventListener("DOMContentLoaded", function() {
       var scheme = self.opts.colorScheme();
       if (scheme === "dark") { classes.push("dark-mode"); }
       if (scheme === "light") { classes.push("light-mode"); }
-      classes.push(self.opts.popupActionRowLayout() === "vertical" ? "action-layout-vertical" : "action-layout-horizontal");
-      classes.push(self.opts.popupHeaderIconSize() === "compact" ? "popup-header-icons-compact" : "popup-header-icons-normal");
-      classes.push("popup-scrollbar-" + self.opts.popupScrollbarMode());
-      classes.push(self.opts.popupTableActionPanelPosition() === "below_name" ? "table-action-panel-below-name" : "table-action-panel-side");
-      classes.push(self.opts.popupProfilePillTextMode() === "icons_only" ? "profile-pill-icons-only" : "profile-pill-text-visible");
-      classes.push(self.opts.popupProfilePillShowIcons() || self.opts.popupProfilePillTextMode() === "icons_only" ? "profile-pill-icons-visible" : "profile-pill-icons-hidden");
       return classes.join(" ");
-    });
-
-    self.scrollbarClass = ko.pureComputed(function() {
-      return "popup-scrollbar-" + self.opts.popupScrollbarMode();
     });
 
     self.isCompactPopupList = ko.pureComputed(function() {
       return self.opts.viewMode() === "list" && self.opts.popupListStyle() === "compact";
     });
 
-    self.isTablePopupList = ko.pureComputed(function() {
-      return self.opts.viewMode() === "list" && self.opts.popupListStyle() === "table";
-    });
-
-    self.assignableProfiles = ko.pureComputed(function() {
-      return self.profiles.items().filter(function(profile) {
-        return !profile.reserved() || profile.name() === "__always_on" || profile.name() === "__base" || profile.name() === "__favorites";
-      });
-    });
-
-    self.profileMembershipRows = ko.pureComputed(function() {
-      var expandedId = self.expandedExtensionId();
-      var memberMap = expandedId ? (self.extensionProfileMembership()[expandedId] || {}) : {};
-      return self.profiles.items().filter(function(profile) {
-        return !profile.reserved() || profile.name() === "__always_on" || profile.name() === "__base" || profile.name() === "__favorites";
-      }).map(function(profile) {
-        var profileName = profile.name();
-        var isMember = !!memberMap[profileName];
-        return {
-          label: profile.short_name() + " \u00b7 " + (isMember ? "Remove" : "Add"),
-          active: isMember,
-          toggleFn: function() {
-            if (!expandedId) { return false; }
-            self.performAction(ExtensityApi.updateExtensionProfileMembership(expandedId, profileName, !isMember));
-            return false;
-          }
-        };
-      });
-    });
-
-    self.profileDropdownOptions = ko.pureComputed(function() {
-      var expandedId = self.expandedExtensionId();
-      var memberMap = expandedId ? (self.extensionProfileMembership()[expandedId] || {}) : {};
-      return self.profiles.items().filter(function(profile) {
-        return !profile.reserved();
-      }).map(function(profile) {
-        var profileName = profile.name();
-        var isMember = !!memberMap[profileName];
-        return {
-          label: (isMember ? "\u2713 " : "\u2003") + profile.short_name(),
-          value: profileName
-        };
-      });
-    });
-
-    self.onProfileMembershipChange = function(data, event) {
-      var selectedName = event.target.value;
-      event.target.value = "";
-      if (!selectedName || !self.expandedExtensionId()) { return false; }
-      var expandedId = self.expandedExtensionId();
-      var memberMap = self.extensionProfileMembership()[expandedId] || {};
-      var isMember = !!memberMap[selectedName];
-      self.performAction(ExtensityApi.updateExtensionProfileMembership(expandedId, selectedName, !isMember));
-      return false;
-    };
-
     ko.computed(function() {
-      var itemPadding = parseFloat(self.opts.itemPaddingPx());
-      var itemVerticalSpace = parseFloat(self.opts.itemVerticalSpacePx());
-      function px(value, fallback) {
-        var parsed = parseFloat(value);
-        return (isFinite(parsed) ? parsed : fallback) + "px";
-      }
       var style = document.documentElement.style;
-      style.setProperty("--font-size", px(self.opts.fontSizePx(), 12));
-      style.setProperty("--item-padding-v", (isFinite(itemPadding) ? Math.max(itemPadding, 0) : 10) + "px");
-      style.setProperty("--item-padding-v-adjust", (isFinite(itemPadding) ? Math.min(itemPadding, 0) : 0) + "px");
-      style.setProperty("--item-padding-x", px(self.opts.itemPaddingXPx(), 12));
-      style.setProperty("--item-name-gap", px(self.opts.itemNameGapPx(), 10));
-      style.setProperty("--item-spacing", px(self.opts.itemSpacingPx(), 8));
-      style.setProperty("--item-v-space", (isFinite(itemVerticalSpace) ? Math.max(itemVerticalSpace, 0) : 0) + "px");
-      style.setProperty("--item-v-space-adjust", (isFinite(itemVerticalSpace) ? Math.min(itemVerticalSpace, 0) : 0) + "px");
-      style.setProperty("--extension-icon-size", px(self.opts.extensionIconSizePx(), 16));
-      style.setProperty("--popup-main-padding-x", px(self.opts.popupMainPaddingPx(), 0));
-      style.setProperty("--popup-width", px(self.opts.popupWidthPx(), 380));
-      if (self.opts.accentColor()) { style.setProperty("--accent", self.opts.accentColor()); }
-      if (self.opts.popupBgColor()) { document.body.style.background = self.opts.popupBgColor(); }
-      if (self.opts.fontFamily()) { document.body.style.fontFamily = self.opts.fontFamily(); }
+      style.setProperty("--font-size", self.opts.fontSizePx() + "px");
+      style.setProperty("--item-padding-v", self.opts.itemPaddingPx() + "px");
+      style.setProperty("--item-padding-x", self.opts.itemPaddingXPx() + "px");
+      style.setProperty("--item-name-gap", self.opts.itemNameGapPx() + "px");
+      style.setProperty("--item-spacing", self.opts.itemSpacingPx() + "px");
+      style.setProperty("--popup-width", self.opts.popupWidthPx() + "px");
     });
-
-    self.activeProfileObj = ko.pureComputed(function() {
-      var name = self.activeProfile();
-      if (!name) { return null; }
-      var found = null;
-      self.profiles.items().forEach(function(p) {
-        if (p.name() === name) { found = p; }
-      });
-      return found;
-    });
-
-    self.activeProfileBadgeStyle = ko.pureComputed(function() {
-      var p = self.activeProfileObj();
-      return p ? "border-left-color:" + p.color() : "";
-    });
-
-    self.activeProfileIconClass = ko.pureComputed(function() {
-      var p = self.activeProfileObj();
-      return p ? "fa " + p.icon() : "fa";
-    });
-
-    self.activeProfileName = ko.pureComputed(function() {
-      var p = self.activeProfileObj();
-      return p ? p.short_name() : "";
-    });
-
-    self.profilePillIconsOnly = ko.pureComputed(function() {
-      return self.opts.popupProfilePillTextMode() === "icons_only";
-    });
-
-    self.showProfilePillCheck = function(profile) {
-      return !self.profilePillIconsOnly() && profile.isActive();
-    };
-
-    self.showProfilePillReservedIcon = function(profile, reservedName) {
-      if (profile.name() !== reservedName) {
-        return false;
-      }
-      if (self.profilePillIconsOnly()) {
-        return true;
-      }
-      return self.opts.popupProfilePillShowIcons() && !profile.isActive();
-    };
-
-    self.showProfilePillCustomIcon = function(profile) {
-      if (profile.reserved() || !profile.icon()) {
-        return false;
-      }
-      if (self.profilePillIconsOnly()) {
-        return true;
-      }
-      return self.opts.popupProfilePillShowIcons() && !profile.isActive();
-    };
-
-    self.showProfilePillText = function() {
-      return !self.profilePillIconsOnly();
-    };
-
-    self.decorateProfileRow = function(profile) {
-      function profileTooltipText() {
-        return profile.reserved() ? profile.short_name() : profile.name();
-      }
-
-      profile.selectProfile = function() {
-        self.setProfile(profile);
-      };
-      profile.profileTooltip = ko.pureComputed(function() {
-        return profileTooltipText();
-      });
-      profile.showPillCheck = ko.pureComputed(function() {
-        return self.showProfilePillCheck(profile);
-      });
-      profile.showAlwaysOnIcon = ko.pureComputed(function() {
-        return self.showProfilePillReservedIcon(profile, "__always_on");
-      });
-      profile.showBaseIcon = ko.pureComputed(function() {
-        return self.showProfilePillReservedIcon(profile, "__base");
-      });
-      profile.showFavoritesIcon = ko.pureComputed(function() {
-        return self.showProfilePillReservedIcon(profile, "__favorites");
-      });
-      profile.showCustomIcon = ko.pureComputed(function() {
-        return self.showProfilePillCustomIcon(profile);
-      });
-      profile.showPillText = ko.pureComputed(function() {
-        return self.showProfilePillText();
-      });
-      profile.showPillCount = ko.pureComputed(function() {
-        return self.showProfilePillText();
-      });
-    };
-
-    self.decorateItemRow = function(item) {
-      item.showDefaultRow = ko.pureComputed(function() {
-        return !item.isApp() && !self.isCompactPopupList() && !self.isTablePopupList();
-      });
-      item.showTableRow = ko.pureComputed(function() {
-        return !item.isApp() && self.isTablePopupList();
-      });
-      item.showCompactRow = ko.pureComputed(function() {
-        return !item.isApp() && self.isCompactPopupList();
-      });
-      item.showAppRow = ko.pureComputed(function() {
-        return item.isApp();
-      });
-      item.rowExpanded = ko.pureComputed(function() {
-        return self.expandedExtensionId() === item.id();
-      });
-      item.rowClick = function() {
-        if (item.isApp()) {
-          self.launchApp(item);
-          return;
-        }
-        self.toggleExtension(item);
-      };
-      item.rowKeydown = function(data, event) {
-        self.handleRowKeydown(item, event);
-      };
-      item.compactRowKeydown = function(data, event) {
-        self.handleCompactRowKeydown(item, event);
-      };
-      item.tableRowKeydown = function(data, event) {
-        self.handleTableRowKeydown(item, event);
-      };
-      item.toggleCompactAction = function() {
-        self.toggleCompactExtension(item);
-      };
-      item.toggleCompactRowAction = function() {
-        self.toggleCompactRow(item);
-      };
-      item.toggleTableRowAction = function() {
-        self.toggleTableRow(item);
-      };
-      item.openManageAction = function() {
-        return self.openManagePage(item);
-      };
-      item.openPermissionsAction = function() {
-        return self.openPermissionsPage(item);
-      };
-      item.copyLinkAction = function() {
-        return self.copyExtensionLink(item);
-      };
-      item.openStoreAction = function() {
-        return self.openChromeWebStore(item);
-      };
-      item.removeAction = function() {
-        return self.removeExtension(item);
-      };
-      item.launchOptionsAction = function() {
-        return self.launchOptions(item);
-      };
-      item.showOptionsButton = ko.pureComputed(function() {
-        return self.opts.showOptions() && !!item.optionsUrl() && !item.disabled();
-      });
-      item.showVersionCategoryLine = ko.pureComputed(function() {
-        return self.opts.showPopupVersionChips() && !!item.versionCategoryLine();
-      });
-      item.showVersionChip = ko.pureComputed(function() {
-        return self.opts.showPopupVersionChips() && !!item.version();
-      });
-      item.showCategorySubtitle = ko.pureComputed(function() {
-        return self.opts.showPopupVersionChips() && !!item.category();
-      });
-      item.profileDropdownOptions = ko.pureComputed(function() {
-        var memberMap = self.extensionMembershipMap(item);
-        return self.assignableProfiles().map(function(profile) {
-          var profileName = profile.name();
-          return {
-            label: (memberMap[profileName] ? "\u2713 " : "\u2003") + profile.short_name(),
-            value: profileName
-          };
-        });
-      });
-      item.onProfileMembershipChange = function(data, event) {
-        var selectedName = event.target.value;
-        event.target.value = "";
-        if (!selectedName) {
-          return false;
-        }
-        var isMember = self.isExtensionInProfile(item, selectedName);
-        self.performAction(ExtensityApi.updateExtensionProfileMembership(item.id(), selectedName, !isMember));
-        return false;
-      };
-    };
 
     self.canUndo = ko.pureComputed(function() {
       return self.undoDepth() > 0;
@@ -426,117 +213,50 @@ document.addEventListener("DOMContentLoaded", function() {
     self.applyState = function(state) {
       self.opts.apply(state.options);
       self.activeProfile(state.options.activeProfile);
-      self.profiles.localProfiles(state.profiles && state.profiles.localProfiles ? true : false);
-      self.profiles.items((state.profiles && state.profiles.items ? state.profiles.items : []).map(function(profile) {
-        var model = new ProfileModel(profile.name, profile.items, {
-          color: profile.color,
-          icon: profile.icon
-        });
-        self.decorateProfileRow(model);
-        return model;
-      }));
-      self.exts.items((state.extensions || []).map(function(extension) {
-        var model = new ExtensionModel(extension);
-        self.decorateItemRow(model);
-        return model;
-      }));
+      self.profiles.applyState(state.profiles);
+      self.exts.applyState(state.extensions);
       self.switch.restoreList(state.localState.bulkToggleRestore || []);
       self.undoDepth((state.localState.undoStack || []).length);
 
       // Mark active profile pill
       self.profiles.items().forEach(function(profile) {
         profile.isActive(profile.name() === state.options.activeProfile);
-        profile.popupLabel(ExtensityPopupLabels.formatProfileBadgeLabel(
-          profile.name(),
-          self.opts.popupProfilePillTextMode(),
-          self.opts.popupProfilePillSingleWordChars()
-        ));
       });
 
       // Compute profile membership badges for each extension
-      var normalProfileMap = {};
-      var baseMembershipMap = {};
+      var profileMap = {};
       var colorIndex = 0;
       var badgeMode = self.opts.popupProfileBadgeTextMode();
       var singleWordChars = self.opts.popupProfileBadgeSingleWordChars();
-      function buildProfileBadge(name, colorClass, badgeStyle, title) {
-        return {
-          badgeStyle: badgeStyle || "",
-          colorClass: colorClass || "",
-          name: ExtensityPopupLabels.formatProfileBadgeLabel(name, badgeMode, singleWordChars),
-          title: title || name
-        };
-      }
-
       self.profiles.items().forEach(function(profile) {
-        if (profile.name() === "__base") {
+        if (!profile.reserved()) {
+          var colorClass = "profile-color-" + (colorIndex % 5);
+          colorIndex += 1;
           profile.items().forEach(function(extId) {
-            baseMembershipMap[extId] = true;
+            if (!profileMap[extId]) { profileMap[extId] = []; }
+            profileMap[extId].push({
+              colorClass: colorClass,
+              name: ExtensityPopupLabels.formatProfileBadgeLabel(profile.name(), badgeMode, singleWordChars)
+            });
           });
-          return;
         }
-        if (profile.reserved()) {
-          return;
-        }
-
-        var hexColor = profile.color();
-        var isHex = hexColor && hexColor.indexOf("#") === 0;
-        var colorClass = isHex ? "" : ("profile-color-" + (colorIndex % 5));
-        var badgeStyle = isHex ? ("border-left-color:" + hexColor) : "";
-        var badgeTitle = profile.name();
-        colorIndex += 1;
-        profile.items().forEach(function(extId) {
-          if (!normalProfileMap[extId]) { normalProfileMap[extId] = []; }
-          normalProfileMap[extId].push(buildProfileBadge(profile.name(), colorClass, badgeStyle, badgeTitle));
-        });
       });
       self.exts.items().forEach(function(ext) {
-        var badges = [];
-        var isAlwaysOn = ext.alwaysOn();
-        var isBaseMember = !!baseMembershipMap[ext.id()];
-        var normalBadges = (normalProfileMap[ext.id()] || []).slice();
-        if (isAlwaysOn && self.opts.showAlwaysOnBadge()) {
-          badges.push(buildProfileBadge("__always_on", "always-on-badge", "", "Always On"));
-        }
-        if (isBaseMember) {
-          badges.push(buildProfileBadge("__base", "base-badge", "", "Base"));
-        }
-        if (!isAlwaysOn) {
-          badges = badges.concat(normalBadges.slice(0, 3));
-          if (normalBadges.length > 3) {
-            badges.push({
-              badgeStyle: "",
-              colorClass: "profile-overflow-badge",
-              name: "+" + (normalBadges.length - 3),
-              title: "Hidden profiles: " + normalBadges.slice(3).map(function(badge) {
-                return badge.title;
-              }).join(", ")
-            });
-          }
+        var badges = (profileMap[ext.id()] || []).slice();
+        if (self.opts.showAlwaysOnBadge() && ext.alwaysOn()) {
+          badges.unshift({
+            colorClass: "always-on-badge",
+            name: ExtensityPopupLabels.formatProfileBadgeLabel("__always_on", badgeMode, singleWordChars)
+          });
         }
         ext.profileBadges(badges);
       });
-
-      var profileMembership = {};
-      self.profiles.items().forEach(function(profile) {
-        profile.items().forEach(function(extensionId) {
-          if (!profileMembership[extensionId]) {
-            profileMembership[extensionId] = {};
-          }
-          profileMembership[extensionId][profile.name()] = true;
-        });
-      });
-      self.extensionProfileMembership(profileMembership);
 
       if (self.expandedExtensionId() && !self.exts.find(self.expandedExtensionId())) {
         self.expandedExtensionId(null);
       }
 
       document.body.className = self.bodyClass();
-      document.documentElement.className = self.scrollbarClass();
-      if (window.ExtensityTooltips && window.ExtensityTooltips.applyAutoTooltips) {
-        window.ExtensityTooltips.applyAutoTooltips(document.body);
-      }
       self.loading(false);
       self.error("");
     };
@@ -577,7 +297,7 @@ document.addEventListener("DOMContentLoaded", function() {
     };
 
     self.launchOptions = function(extension) {
-      return ExtensityUtils.openTab(extension.optionsUrl());
+      return openTab(extension.optionsUrl());
     };
 
     self.isRowExpanded = function(extensionId) {
@@ -613,16 +333,6 @@ document.addEventListener("DOMContentLoaded", function() {
       }
     };
 
-    self.toggleTableRow = function(extension) {
-      var nextId = self.isRowExpanded(extension.id()) ? null : extension.id();
-      self.expandedExtensionId(nextId);
-      if (nextId) {
-        self.ensureExtensionMetadata(extension).catch(function(error) {
-          self.error(error.message);
-        });
-      }
-    };
-
     self.toggleCompactExtension = function(extension) {
       self.performAction(ExtensityApi.setExtensionState(extension.id(), !extension.status(), {
         source: "manual"
@@ -635,14 +345,14 @@ document.addEventListener("DOMContentLoaded", function() {
     };
 
     self.openManagePage = function(extension) {
-      return ExtensityUtils.openTab(ExtensityUtils.buildManageExtensionUrl(extension.id())).catch(function(error) {
+      return openTab(buildManageExtensionUrl(extension.id())).catch(function(error) {
         self.error(error.message);
       });
     };
 
     self.openPermissionsPage = function(extension) {
-      return ExtensityUtils.openTab(ExtensityUtils.buildPermissionsPageUrl(extension.id())).catch(function() {
-        return ExtensityUtils.openTab(ExtensityUtils.buildManageExtensionUrl(extension.id()));
+      return openTab(buildPermissionsPageUrl(extension.id())).catch(function() {
+        return openTab(buildManageExtensionUrl(extension.id()));
       }).catch(function(error) {
         self.error(error.message);
       });
@@ -656,7 +366,7 @@ document.addEventListener("DOMContentLoaded", function() {
       if (!self.canCopyLink(extension)) {
         return;
       }
-      ExtensityUtils.copyText(extension.copyLinkUrl()).catch(function(error) {
+      copyText(extension.copyLinkUrl()).catch(function(error) {
         self.error(error.message);
       });
     };
@@ -665,35 +375,13 @@ document.addEventListener("DOMContentLoaded", function() {
       if (!extension.storeLinkAvailable()) {
         return;
       }
-      ExtensityUtils.openTab(extension.storeUrl()).catch(function(error) {
+      openTab(extension.storeUrl()).catch(function(error) {
         self.error(error.message);
       });
     };
 
     self.canRemoveExtension = function(extension) {
       return extension.installType() !== "admin";
-    };
-
-    self.extensionMembershipMap = function(extension) {
-      return self.extensionProfileMembership()[extension.id()] || {};
-    };
-
-    self.isExtensionInProfile = function(extension, profileName) {
-      return !!self.extensionMembershipMap(extension)[profileName];
-    };
-
-    self.toggleExtensionProfileMembership = function(extension, profile) {
-      if (!profile || profile.reserved()) {
-        return false;
-      }
-
-      var shouldInclude = !self.isExtensionInProfile(extension, profile.name());
-      self.performAction(ExtensityApi.updateExtensionProfileMembership(extension.id(), profile.name(), shouldInclude));
-      return false;
-    };
-
-    self.extensionMembershipButtonLabel = function(extension, profile) {
-      return self.isExtensionInProfile(extension, profile.name()) ? "Remove" : "Add";
     };
 
     self.removeExtension = function(extension) {
@@ -765,33 +453,6 @@ document.addEventListener("DOMContentLoaded", function() {
         focusSiblingRow(event.currentTarget, -1);
         event.preventDefault();
       }
-    };
-
-    self.handleTableRowKeydown = function(item, event) {
-      if (event.key === "ArrowDown") {
-        focusSiblingRow(event.currentTarget, 1);
-        event.preventDefault();
-        return;
-      }
-
-      if (event.key === "ArrowUp") {
-        focusSiblingRow(event.currentTarget, -1);
-        event.preventDefault();
-        return;
-      }
-
-      if (event.key !== " " && event.key !== "Enter") {
-        return;
-      }
-
-      var target = event.target;
-      var interactive = target && target.closest && target.closest("button, input, select, a");
-      if (interactive && interactive !== event.currentTarget) {
-        return;
-      }
-
-      self.toggleTableRow(item);
-      event.preventDefault();
     };
 
     self.filterProfile = function(profile) {

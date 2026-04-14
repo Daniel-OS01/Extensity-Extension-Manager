@@ -1,74 +1,29 @@
 document.addEventListener("DOMContentLoaded", function() {
   function numericOption(value, fallback) {
-    var parsed = typeof value === "number" ? value : parseFloat(value);
-    return isFinite(parsed) ? parsed : fallback;
+    return typeof value === "number" && isFinite(value) ? value : fallback;
   }
 
-  function normalizePopupListStyle(value) {
-    var allowed = ["card", "flat", "compact", "table"];
-    return allowed.indexOf(value) !== -1 ? value : "card";
+  function exportFilename(prefix, ext) {
+    var d = new Date();
+    var dd = String(d.getDate()).padStart(2, "0");
+    var mm = String(d.getMonth() + 1).padStart(2, "0");
+    var yyyy = d.getFullYear();
+    return prefix + "-" + dd + "-" + mm + "-" + yyyy + "." + ext;
   }
 
-  function normalizeDirection(value) {
-    return value === "rtl" ? "rtl" : "ltr";
+  function applyThemeClasses(options) {
+    document.body.classList.toggle("dark-mode", options.colorScheme === "dark");
+    document.body.classList.toggle("light-mode", options.colorScheme === "light");
   }
-
-  function normalizePopupTextMode(value) {
-    if (value === "compact" || value === "icons_only") {
-      return value;
-    }
-    return "full";
-  }
-
-  function normalizePopupPanelPosition(value) {
-    return value === "below_name" ? "below_name" : "side";
-  }
-
-  function normalizePopupHeaderIconSize(value) {
-    return value === "compact" ? "compact" : "normal";
-  }
-
-  function normalizePopupScrollbarMode(value) {
-    if (value === "visible" || value === "compact") {
-      return value;
-    }
-    return "invisible";
-  }
-
-  function normalizeOptionState(options) {
-    var normalized = Object.assign({}, options || {});
-    normalized.popupListStyle = normalizePopupListStyle(normalized.popupListStyle);
-    normalized.profileExtensionSide = normalized.profileExtensionSide === "right" ? "right" : "left";
-    normalized.profileLayoutDirection = normalizeDirection(normalized.profileLayoutDirection);
-    normalized.profileNameDirection = normalizeDirection(normalized.profileNameDirection);
-    normalized.popupActionRowLayout = normalized.popupActionRowLayout === "vertical" ? "vertical" : "horizontal";
-    normalized.popupHeaderIconSize = normalizePopupHeaderIconSize(normalized.popupHeaderIconSize);
-    normalized.popupScrollbarMode = normalizePopupScrollbarMode(normalized.popupScrollbarMode);
-    normalized.popupProfilePillShowIcons = normalized.popupProfilePillShowIcons === true;
-    normalized.popupProfilePillTextMode = normalizePopupTextMode(normalized.popupProfilePillTextMode);
-    normalized.popupTableActionPanelPosition = normalizePopupPanelPosition(normalized.popupTableActionPanelPosition);
-    return normalized;
-  }
-
 
   function applyCssVars(options) {
-    var itemPadding = numericOption(options.itemPaddingPx, 10);
-    var itemVerticalSpace = numericOption(options.itemVerticalSpacePx, 0);
     var style = document.documentElement.style;
     style.setProperty("--font-size", numericOption(options.fontSizePx, 12) + "px");
-    style.setProperty("--item-padding-v", Math.max(itemPadding, 0) + "px");
-    style.setProperty("--item-padding-v-adjust", Math.min(itemPadding, 0) + "px");
+    style.setProperty("--item-padding-v", numericOption(options.itemPaddingPx, 10) + "px");
     style.setProperty("--item-padding-x", numericOption(options.itemPaddingXPx, 12) + "px");
     style.setProperty("--item-name-gap", numericOption(options.itemNameGapPx, 10) + "px");
     style.setProperty("--item-spacing", numericOption(options.itemSpacingPx, 8) + "px");
-    style.setProperty("--item-v-space", Math.max(itemVerticalSpace, 0) + "px");
-    style.setProperty("--item-v-space-adjust", Math.min(itemVerticalSpace, 0) + "px");
-    style.setProperty("--extension-icon-size", numericOption(options.extensionIconSizePx, 16) + "px");
-    style.setProperty("--popup-main-padding-x", numericOption(options.popupMainPaddingPx, 0) + "px");
     style.setProperty("--popup-width", numericOption(options.popupWidthPx, 380) + "px");
-    if (options.accentColor) { style.setProperty("--accent", options.accentColor); }
-    if (options.popupBgColor) { document.body.style.background = options.popupBgColor; }
-    if (options.fontFamily) { document.body.style.fontFamily = options.fontFamily; }
   }
 
   function formatTimestamp(timestamp) {
@@ -78,31 +33,71 @@ document.addEventListener("DOMContentLoaded", function() {
     return new Date(timestamp).toLocaleString();
   }
 
+  function OptionsViewModel() {
+    var self = this;
+    self.loading = ko.observable(true);
+    self.busy = ko.observable(false);
+    self.error = ko.observable("");
+    self.message = ko.observable("");
+    self.options = new OptionsCollection();
 
-  function attachPermissionMethods(self) {
-    self.checkWebStorePermission = function() {
-      chrome.permissions.contains(
-        { origins: ["https://chromewebstore.google.com/*"] },
-        function(granted) { self.needsWebStorePermission(!granted); }
-      );
-    };
-
-    self.requestWebStorePermission = function() {
-      chrome.permissions.request(
-        { origins: ["https://chromewebstore.google.com/*"] },
-        function(granted) { self.needsWebStorePermission(!granted); }
-      );
-    };
-  }
-
-  function attachDataMethods(self) {
     self.lastDriveSyncLabel = ko.pureComputed(function() {
       return formatTimestamp(self.options.lastDriveSync());
     });
+
+    self.applyState = function(state) {
+      self.options.apply(state.options);
+      applyThemeClasses(state.options);
+      applyCssVars(state.options);
+      self.loading(false);
+      self.error("");
+    };
+
+    self.performAction = function(request) {
+      self.busy(true);
+      self.error("");
+
+      return request.then(function(payload) {
+        if (payload.state) {
+          self.applyState(payload.state);
+        }
+        return payload;
+      }).catch(function(error) {
+        self.error(error.message);
+        throw error;
+      }).finally(function() {
+        self.busy(false);
+      });
+    };
+
+    self.refresh = function() {
+      self.loading(true);
+      return self.performAction(ExtensityApi.getState());
+    };
+
+    self.save = function() {
+      self.performAction(ExtensityApi.saveOptions(self.options.toJS())).then(function() {
+        self.message("Saved!");
+        fadeOutMessage("save-result");
+      });
+    };
+
+    self.close = function() {
+      window.close();
+    };
+
+    self.openDashboard = function() {
+      self.performAction(ExtensityApi.openDashboard());
+    };
+
+    self.openShortcutSettings = function() {
+      chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
+    };
+
     self.exportJson = function() {
       self.performAction(ExtensityApi.exportBackup()).then(function(payload) {
         ExtensityIO.downloadText(
-          ExtensityIO.exportFilename("extensity-plus-backup", "json"),
+          exportFilename("extensity-plus-backup", "json"),
           JSON.stringify(payload.envelope, null, 2),
           "application/json;charset=utf-8"
         );
@@ -112,7 +107,7 @@ document.addEventListener("DOMContentLoaded", function() {
     self.exportCsv = function() {
       self.performAction(ExtensityApi.getState()).then(function(payload) {
         var csv = ExtensityImportExport.buildExtensionsCsv(payload.state.extensions);
-        ExtensityIO.downloadText(ExtensityIO.exportFilename("extensity-extensions", "csv"), csv, "text/csv;charset=utf-8");
+        ExtensityIO.downloadText(exportFilename("extensity-extensions", "csv"), csv, "text/csv;charset=utf-8");
       });
     };
 
@@ -144,16 +139,13 @@ document.addEventListener("DOMContentLoaded", function() {
         self.message("Drive sync completed.");
       }).catch(function() {});
     };
-  }
 
-  function attachPresetMethods(self) {
     self.applyPresetNone = function() {
+      self.options.fontSizePx(12);
       self.options.itemPaddingPx(0);
       self.options.itemPaddingXPx(0);
       self.options.itemNameGapPx(0);
       self.options.itemSpacingPx(0);
-      self.options.popupListStyle("table");
-      applyCssVars(self.options.toJS());
       self.save();
     };
 
@@ -183,88 +175,6 @@ document.addEventListener("DOMContentLoaded", function() {
       self.options.itemSpacingPx(12);
       self.save();
     };
-
-    self.resetAccentColor = function() {
-      self.options.accentColor("");
-      applyCssVars(self.options.toJS());
-      self.save();
-    };
-
-    self.resetPopupBgColor = function() {
-      self.options.popupBgColor("");
-      document.body.style.background = "";
-      self.save();
-    };
-  }
-
-  function OptionsViewModel() {
-    var self = this;
-    self.loading = ko.observable(true);
-    self.busy = ko.observable(false);
-    self.error = ko.observable("");
-    self.message = ko.observable("");
-    self.needsWebStorePermission = ko.observable(false);
-    self.options = new OptionsCollection();
-
-    attachPermissionMethods(self);
-    attachDataMethods(self);
-    attachPresetMethods(self);
-
-    self.applyState = function(state) {
-      var normalizedOptions = normalizeOptionState(state.options);
-      self.options.apply(normalizedOptions);
-      ExtensityUtils.applyThemeClasses(normalizedOptions);
-      applyCssVars(normalizedOptions);
-      if (window.ExtensityTooltips && window.ExtensityTooltips.applyAutoTooltips) {
-        window.ExtensityTooltips.applyAutoTooltips(document.body);
-      }
-      self.loading(false);
-      self.error("");
-      self.checkWebStorePermission();
-    };
-
-    self.performAction = function(request) {
-      self.busy(true);
-      self.error("");
-
-      return request.then(function(payload) {
-        if (payload.state) {
-          self.applyState(payload.state);
-        }
-        return payload;
-      }).catch(function(error) {
-        self.error(error.message);
-        throw error;
-      }).finally(function() {
-        self.busy(false);
-      });
-    };
-
-    self.refresh = function() {
-      self.loading(true);
-      return self.performAction(ExtensityApi.getState());
-    };
-
-    self.save = function() {
-      var payload = normalizeOptionState(self.options.toJS());
-      return self.performAction(ExtensityApi.saveOptions(payload)).then(function() {
-        self.message("Saved!");
-        fadeOutMessage("save-result");
-      });
-    };
-
-    self.close = function() {
-      window.close();
-    };
-
-    self.openDashboard = function() {
-      self.performAction(ExtensityApi.openDashboard());
-    };
-
-    self.openShortcutSettings = function() {
-      chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
-    };
-
   }
 
   _.defer(function() {

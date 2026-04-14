@@ -1,21 +1,20 @@
 {
-  "name": "Extensity-Plus",
-  "version": "2.0.2",
+  "name": "Extensity",
+  "version": "2.0.0",
   "manifest_version": 3,
   "description": "Quickly enable/disable Google Chrome extensions",
   "options_ui": {
     "page": "options.html",
     "open_in_tab": true
   },
-  "icons": {
-    "16": "images/icon16.png",
-    "32": "images/icon32.png",
-    "48": "images/icon48.png",
-    "128": "images/icon128.png"
+  "icons" : {
+    "16" : "images/icon16.png",
+    "48" : "images/icon48.png",
+    "128" : "images/icon128.png"
   },
   "action": {
     "default_icon": "images/iconbar.png",
-    "default_title": "Extensity-Plus",
+    "default_title": "Extensity",
     "default_popup": "index.html"
   },
   "background": {
@@ -30,7 +29,7 @@
     "tabs",
     "webNavigation"
   ],
-  "optional_host_permissions": [
+  "host_permissions": [
     "https://chromewebstore.google.com/*"
   ],
   "optional_permissions": [

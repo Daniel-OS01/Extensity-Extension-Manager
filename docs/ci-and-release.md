@@ -39,44 +39,38 @@ This creates `artifacts/chrome-web-store/` with:
 
 ## GitHub Actions
 
-### CI And Release Workflow
+### CI Workflow
 
 File: `.github/workflows/ci.yml`
 
-Runs on:
+Runs on push and pull request.
 
-- pull requests
-- pushes to `main`
-- pushes to tags matching `v*`
-- manual dispatch with a `patch`, `minor`, or `major` version bump
-
-Behavior:
-
-- pull requests and normal pushes run validation only
-- manual dispatch bumps `package.json`, `package-lock.json`, and `manifest.json`, commits the version change to `main`, pushes a matching `vX.Y.Z` tag, publishes a GitHub Release entry, and uploads release packages as workflow artifacts
-- tag pushes can still build release assets, upload them as workflow artifacts, and publish a GitHub Release entry for externally created tags
-
-Pre-release jobs:
-
-- `pre-release-contracts`: tests, manifest validation, and version-match checks
-- `pre-release-build-checks`: dry build/package verification before any release publishing
-
-Validation/build steps:
+Steps:
 
 - install dependencies with `npm ci`
 - run unit tests
 - validate the manifest contract
 - build the extension with `make dist`
 - build the Chrome Web Store submission bundle
+- upload both the distribution ZIP and the submission bundle as artifacts
 
-Release assets:
+### Chrome Web Store Bundle Workflow
 
-- workflow-run artifact `release-assets-vX.Y.Z/` containing the packaged extension ZIP, the Chrome Web Store upload ZIP, and the release metadata files
-- the packaged extension ZIP from `dist/dist.zip`, renamed to `<package>-extension-vX.Y.Z.zip`
-- the Chrome Web Store upload ZIP from `artifacts/chrome-web-store/<package>-vX.Y.Z.zip`, renamed to `<package>-chrome-web-store-upload-vX.Y.Z.zip`
-- `submission-metadata.json`
-- `checksums.txt`
-- `submission-notes.md`
+File: `.github/workflows/chrome-web-store-bundle.yml`
+
+Runs on:
+
+- manual dispatch
+- version tags matching `v*`
+
+Steps:
+
+- install dependencies
+- run tests
+- validate the manifest
+- build the extension
+- generate the submission bundle
+- upload the bundle with the current manifest version in the artifact name
 
 ## What The Submission Bundle Solves
 
@@ -86,16 +80,15 @@ That means:
 
 - packaging is reproducible
 - the upload ZIP is versioned and checksummed
-- GitHub Actions stores the release artifact without exposing downloadable files on the public GitHub Release page
+- GitHub Actions stores the release artifact
 - the repo has a machine-readable record of what was packaged
 
 ## Manual Release Tasks Still Required
 
-- download `release-assets-vX.Y.Z` from the workflow run and upload the `*-chrome-web-store-upload-vX.Y.Z.zip` file in the Chrome Web Store dashboard
+- upload the extension ZIP in the Chrome Web Store dashboard
 - update listing copy, screenshots, privacy disclosures, and distribution settings
 - review permissions and manifest changes before submission
 - complete any publisher-account-specific signing or verification requirements
-- update the GitHub repository "About" metadata if you want the hosted repo description to match the README wording exactly
 
 ## Recommended Manual Test Pass Before Release
 
@@ -152,8 +145,7 @@ Load the unpacked extension in Chrome and verify each surface:
 
 ### Build verification
 
-- `npm test` passes the browser-module test suite
+- `npm test` passes all 5 unit tests
 - `npm run check:manifest` reports `manifest_ok`
 - `make dist` produces a valid `dist/dist.zip`
 - `npm run bundle:chrome-store` produces the submission bundle under `artifacts/chrome-web-store/`
-- the bundle includes a versioned upload ZIP whose root contains `manifest.json`, `images/icon16.png`, `images/icon32.png`, `images/icon48.png`, and `images/icon128.png`

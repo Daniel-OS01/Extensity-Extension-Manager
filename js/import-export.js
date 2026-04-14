@@ -95,7 +95,6 @@
   root.ExtensityImportExport = {
     buildBackupEnvelope: buildBackupEnvelope,
     buildExtensionsCsv: buildExtensionsCsv,
-    validateBackupEnvelope: validateBackupEnvelope,
-    _csvEscape: csvEscape
+    validateBackupEnvelope: validateBackupEnvelope
   };
 })(typeof window !== "undefined" ? window : self);

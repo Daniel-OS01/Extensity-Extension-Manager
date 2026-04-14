@@ -16,11 +16,8 @@ importScripts(
   var history = root.ExtensityHistory;
   var reminders = root.ExtensityReminders;
   var driveSync = root.ExtensityDriveSync;
-  var urlRuleTimeoutAlarmPrefix = "extensity-url-rule-timeout-";
   var urlEvaluationTimers = {};
-  var tabRuleApplications = {};
   var metadataCacheTtlMs = 7 * 24 * 60 * 60 * 1000;
-  var webStorePermissionOrigin = "https://chromewebstore.google.com/*";
 
   function chromeCall(target, method, args) {
     return new Promise(function(resolve, reject) {
@@ -38,134 +35,6 @@ importScripts(
 
   function isAppType(type) {
     return ["hosted_app", "legacy_packaged_app", "packaged_app"].indexOf(type) !== -1;
-  }
-
-  function urlRuleTimeoutAlarmName() {
-    return urlRuleTimeoutAlarmPrefix + storage.makeId("alarm");
-  }
-
-  function isUrlRuleTimeoutAlarm(name) {
-    return String(name || "").indexOf(urlRuleTimeoutAlarmPrefix) === 0;
-  }
-
-  async function clearUrlRuleTimeoutQueue(queue) {
-    var entries = Array.isArray(queue) ? queue : [];
-    for (var index = 0; index < entries.length; index += 1) {
-      await chromeCall(chrome.alarms, "clear", [entries[index].alarmName]);
-    }
-    await storage.saveLocalState({ urlRuleTimeoutQueue: [] });
-  }
-
-  function cloneRuleEntries(entries) {
-    return (Array.isArray(entries) ? entries : []).map(function(entry) {
-      return {
-        enabled: !!entry.enabled,
-        id: entry.id || entry.extensionId,
-        ruleId: entry.ruleId || null,
-        ruleName: entry.ruleName || null,
-        tabId: entry.tabId != null ? entry.tabId : null,
-        url: entry.url || ""
-      };
-    }).filter(function(entry) {
-      return !!entry.id;
-    });
-  }
-
-  function buildRuleApplication(entries, url, tabId) {
-    var normalizedEntries = cloneRuleEntries(entries);
-    return {
-      entriesById: normalizedEntries.reduce(function(result, entry) {
-        result[entry.id] = entry;
-        return result;
-      }, {}),
-      enabledIds: storage.uniqueArray(normalizedEntries.filter(function(entry) {
-        return entry.enabled;
-      }).map(function(entry) {
-        return entry.id;
-      })),
-      tabId: tabId,
-      url: url || ""
-    };
-  }
-
-  async function appendDebugHistoryRecords(records) {
-    if (!records || !records.length) {
-      return;
-    }
-    var localState = await storage.loadLocalState();
-    await storage.saveLocalState({
-      eventHistory: history.appendHistory(localState.eventHistory, records)
-    });
-  }
-
-  function createDebugHistoryRecord(current, payload) {
-    if (!current || !current.options || !current.options.debugHistoryVerbose) {
-      return null;
-    }
-    return history.createEventRecord(payload);
-  }
-
-  async function scheduleUrlRuleTimeoutDisable(entries, minutes, tabId) {
-    var normalizedEntries = cloneRuleEntries(entries).filter(function(entry) {
-      return entry.enabled;
-    });
-    if (!normalizedEntries.length) {
-      return;
-    }
-
-    var alarmName = urlRuleTimeoutAlarmName();
-    var localState = await storage.loadLocalState();
-    var queue = Array.isArray(localState.urlRuleTimeoutQueue) ? localState.urlRuleTimeoutQueue.slice() : [];
-    queue.push({
-      alarmName: alarmName,
-      entries: normalizedEntries,
-      tabId: tabId,
-      timestamp: Date.now()
-    });
-    await storage.saveLocalState({ urlRuleTimeoutQueue: queue });
-    chrome.alarms.create(alarmName, { delayInMinutes: minutes });
-  }
-
-  async function handleUrlRuleTimeoutAlarm(alarmName) {
-    var localState = await storage.loadLocalState();
-    var queue = Array.isArray(localState.urlRuleTimeoutQueue) ? localState.urlRuleTimeoutQueue.slice() : [];
-    var entry = queue.find(function(item) { return item.alarmName === alarmName; });
-    var nextQueue = queue.filter(function(item) { return item.alarmName !== alarmName; });
-    await storage.saveLocalState({ urlRuleTimeoutQueue: nextQueue });
-
-    if (!entry || !Array.isArray(entry.entries) || !entry.entries.length) {
-      return;
-    }
-
-    var current = await loadContext();
-    var disableChanges = cloneRuleEntries(entry.entries).map(function(change) {
-      return {
-        enabled: false,
-        id: change.id,
-        ruleId: change.ruleId,
-        ruleName: change.ruleName,
-        tabId: change.tabId,
-        url: change.url
-      };
-    });
-    var debugRecord = createDebugHistoryRecord(current, {
-      action: "url_rule_timeout_alarm",
-      debug: {
-        entries: disableChanges,
-        queueSize: nextQueue.length
-      },
-      event: "timeout",
-      label: "URL rule timeout fired",
-      result: "alarm_fired",
-      tabId: entry.tabId,
-      triggeredBy: "rule",
-      url: disableChanges[0] && disableChanges[0].url ? disableChanges[0].url : ""
-    });
-    await applyExtensionChanges(disableChanges, { source: "rule", tabId: entry.tabId }, {
-      action: "url_rule_timeout",
-      historyRecords: debugRecord ? [debugRecord] : [],
-      pushUndo: false
-    });
   }
 
   function smallestIcon(icons) {
@@ -279,7 +148,7 @@ importScripts(
   }
 
   function defaultCategoryForInstallType(installType) {
-    return installType === "development" ? "Developer" : "";
+    return installType === "development" ? "Developer" : "Uncategorized";
   }
 
   function decodeHtmlEntities(value) {
@@ -299,22 +168,6 @@ importScripts(
     return "https://chromewebstore.google.com/detail/extension/" + extensionId;
   }
 
-  function normalizeCategoryText(value) {
-    var text = decodeHtmlEntities(String(value || ""))
-      .replace(/\s+/g, " ")
-      .trim();
-
-    if (!text) {
-      return "";
-    }
-
-    if (/^extensions?$/i.test(text)) {
-      return "";
-    }
-
-    return text;
-  }
-
   function normalizeStoreUrl(value) {
     if (!value) {
       return "";
@@ -329,20 +182,12 @@ importScripts(
   }
 
   function isFreshMetadata(entry) {
-    if (!entry || !entry.fetchedAt) {
-      return false;
-    }
-
-    var maxAge = entry.source === "fallback"
-      ? Math.min(metadataCacheTtlMs, 12 * 60 * 60 * 1000)
-      : metadataCacheTtlMs;
-
-    return (Date.now() - entry.fetchedAt) < maxAge;
+    return !!entry && !!entry.fetchedAt && (Date.now() - entry.fetchedAt) < metadataCacheTtlMs;
   }
 
   function buildFallbackMetadata(item) {
     return {
-      category: item.installType === "development" ? "Developer" : "",
+      category: defaultCategoryForInstallType(item.installType),
       descriptionLine: firstDescriptionLine(item.description || ""),
       fetchedAt: Date.now(),
       source: "fallback",
@@ -351,104 +196,14 @@ importScripts(
   }
 
   function parseChromeWebStoreHtml(html, requestUrl) {
-    function firstMeaningfulCategoryLinkText() {
-      var categoryLinkRegex = /<a[^>]+href="([^"]*\/category\/[^"]+)"[^>]*>([^<]+)<\/a>/ig;
-      var match;
-
-      while ((match = categoryLinkRegex.exec(html))) {
-        var href = String(match[1] || "").toLowerCase();
-        var linkText = normalizeCategoryText(match[2]);
-        if (!linkText) {
-          continue;
-        }
-
-        if (/\/(category\/extensions?)$/i.test(href) || /^extensions?$/i.test(linkText)) {
-          continue;
-        }
-
-        if (/\/category\/extensions\//i.test(href)) {
-          return linkText;
-        }
-
-        return linkText;
-      }
-
-      return "";
-    }
-
-    function readCategoryFromJsonObject(value) {
-      if (!value || typeof value !== "object") {
-        return "";
-      }
-
-      if (typeof value.applicationCategory === "string" && value.applicationCategory.trim()) {
-        return normalizeCategoryText(value.applicationCategory);
-      }
-      if (typeof value.genre === "string" && value.genre.trim()) {
-        return normalizeCategoryText(value.genre);
-      }
-      if (typeof value.category === "string" && value.category.trim()) {
-        return normalizeCategoryText(value.category);
-      }
-      if (value.about && typeof value.about.name === "string" && value.about.name.trim()) {
-        return normalizeCategoryText(value.about.name);
-      }
-
-      for (var key in value) {
-        if (!Object.prototype.hasOwnProperty.call(value, key)) {
-          continue;
-        }
-
-        var nextValue = value[key];
-        if (Array.isArray(nextValue)) {
-          for (var j = 0; j < nextValue.length; j += 1) {
-            var fromArray = readCategoryFromJsonObject(nextValue[j]);
-            if (fromArray) {
-              return fromArray;
-            }
-          }
-          continue;
-        }
-
-        var nested = readCategoryFromJsonObject(nextValue);
-        if (nested) {
-          return nested;
-        }
-      }
-
-      return "";
-    }
-
-    function categoryFromStructuredData() {
-      var ldJsonRegex = /<script[^>]+type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/ig;
-      var scriptMatch;
-      while ((scriptMatch = ldJsonRegex.exec(html))) {
-        try {
-          var parsedJson = JSON.parse(scriptMatch[1]);
-          var categoryFromLd = readCategoryFromJsonObject(parsedJson);
-          if (categoryFromLd) {
-            return categoryFromLd;
-          }
-        } catch (error) {
-          // Ignore malformed blobs and continue with other candidates.
-        }
-      }
-
-      var blobCategoryMatch = html.match(/"(?:applicationCategory|genre|category)"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/i);
-      if (blobCategoryMatch && blobCategoryMatch[1]) {
-        return normalizeCategoryText(blobCategoryMatch[1].replace(/\\"/g, '"'));
-      }
-
-      return "";
-    }
-
     var canonicalMatch = html.match(/<link rel="canonical" href="([^"]+)"/i);
     var descriptionMatch = html.match(/<meta[^>]+name="description"[^>]+content="([^"]+)"/i)
       || html.match(/<meta[^>]+property="og:description"[^>]+content="([^"]+)"/i);
-    var category = categoryFromStructuredData() || firstMeaningfulCategoryLinkText();
+    var categoryMatch = html.match(/href="\.\/category\/extensions"[^>]*>[^<]+<\/a>\s*<a[^>]+href="\.\/category\/extensions\/[^"]+"[^>]*>([^<]+)<\/a>\s*[\d,.]+\s*users/i)
+      || html.match(/href="\.\/category\/[^"]+\/[^"]+"[^>]*>([^<]+)<\/a>\s*[\d,.]+\s*users/i);
 
     return {
-      category: normalizeCategoryText(category),
+      category: decodeHtmlEntities(categoryMatch ? categoryMatch[1].trim() : ""),
       descriptionLine: firstDescriptionLine(decodeHtmlEntities(descriptionMatch ? descriptionMatch[1] : "")),
       fetchedAt: Date.now(),
       source: "store",
@@ -456,20 +211,7 @@ importScripts(
     };
   }
 
-  function hasWebStorePermission() {
-    return new Promise(function(resolve) {
-      chrome.permissions.contains(
-        { origins: ["https://chromewebstore.google.com/*"] },
-        function(granted) { resolve(granted); }
-      );
-    });
-  }
-
   async function fetchChromeWebStoreMetadata(item) {
-    var granted = await hasWebStorePermission();
-    if (!granted) {
-      throw new Error("Chrome Web Store access not granted.");
-    }
     var requestUrl = buildGenericStoreUrl(item.id);
     var response = await fetch(requestUrl);
     if (!response.ok) {
@@ -484,8 +226,7 @@ importScripts(
     return parsed;
   }
 
-  async function loadExtensionMetadata(extensionIds, options) {
-    var config = options || {};
+  async function loadExtensionMetadata(extensionIds) {
     var requestedIds = storage.uniqueArray(extensionIds || []);
     if (!requestedIds.length) {
       return {};
@@ -510,11 +251,9 @@ importScripts(
 
       var fallback = buildFallbackMetadata(item);
       var cached = cache[extensionId];
-      var cachedCategory = normalizeCategoryText(cached && cached.category);
-      if (!config.forceRefresh && isFreshMetadata(cached)) {
-        cachedCategory = normalizeCategoryText(cached.category);
+      if (isFreshMetadata(cached)) {
         metadataMap[extensionId] = {
-          category: cached.category !== undefined ? cachedCategory : fallback.category,
+          category: cached.category || fallback.category,
           descriptionLine: cached.descriptionLine || fallback.descriptionLine,
           fetchedAt: cached.fetchedAt,
           source: cached.source || "fallback",
@@ -529,9 +268,8 @@ importScripts(
       } else {
         try {
           nextMetadata = fetchChromeWebStoreMetadata(item).then(function(parsed) {
-            var parsedCategory = normalizeCategoryText(parsed.category);
             return {
-              category: parsedCategory,
+              category: parsed.category || fallback.category,
               descriptionLine: parsed.descriptionLine || fallback.descriptionLine,
               fetchedAt: parsed.fetchedAt,
               source: parsed.source,
@@ -540,13 +278,7 @@ importScripts(
           });
           nextMetadata = await nextMetadata;
         } catch (error) {
-          nextMetadata = {
-            category: cachedCategory || fallback.category,
-            descriptionLine: (cached && cached.descriptionLine) || fallback.descriptionLine,
-            fetchedAt: Date.now(),
-            source: "fallback",
-            storeUrl: normalizeStoreUrl((cached && cached.storeUrl) || fallback.storeUrl)
-          };
+          nextMetadata = fallback;
         }
       }
 
@@ -610,7 +342,6 @@ importScripts(
     var recentList = Array.isArray(state.localState.recentlyUsed) ? state.localState.recentlyUsed : [];
     var groups = state.localState.groups || {};
     var groupLookup = buildGroupLookup(groups);
-    var metadataCache = state.localState.webStoreMetadata || {};
     var alwaysOn = state.profiles.map.__always_on || [];
     var favorites = state.profiles.map.__favorites || [];
 
@@ -625,19 +356,11 @@ importScripts(
           name: group.name || "Group"
         };
       });
-      var fallbackMetadata = buildFallbackMetadata(item);
-      var cachedMetadata = metadataCache[item.id] || {};
-      var normalizedCategory = cachedMetadata.category !== undefined
-        ? normalizeCategoryText(cachedMetadata.category)
-        : fallbackMetadata.category;
-      var normalizedStoreUrl = normalizeStoreUrl(cachedMetadata.storeUrl) || fallbackMetadata.storeUrl;
 
       return {
         alias: aliases[item.id] || "",
         alwaysOn: alwaysOn.indexOf(item.id) !== -1,
-        category: normalizedCategory,
         description: item.description || "",
-        descriptionLine: cachedMetadata.descriptionLine || fallbackMetadata.descriptionLine,
         displayName: aliases[item.id] || item.name,
         enabled: !!item.enabled,
         favorite: favorites.indexOf(item.id) !== -1,
@@ -650,11 +373,8 @@ importScripts(
         isApp: isAppType(item.type),
         lastUsed: recentList.indexOf(item.id) === -1 ? 0 : (recentList.length - recentList.indexOf(item.id)),
         mayDisable: !!item.mayDisable,
-        metadataFetchedAt: cachedMetadata.fetchedAt || fallbackMetadata.fetchedAt,
-        metadataSource: cachedMetadata.source || fallbackMetadata.source,
         name: item.name,
         optionsUrl: item.optionsUrl || "",
-        storeUrl: normalizedStoreUrl,
         type: item.type,
         usageCount: counters[item.id] || 0,
         version: item.version || ""
@@ -705,29 +425,14 @@ importScripts(
         enabled: !!entry.enabled,
         id: extensionId,
         name: item.name,
-        previousEnabled: !!item.enabled,
         profileId: entry.profileId || null,
-        ruleId: entry.ruleId || null,
-        ruleName: entry.ruleName || null,
-        tabId: entry.tabId != null ? entry.tabId : null,
-        url: entry.url || ""
+        ruleId: entry.ruleId || null
       });
     });
 
-    var extraHistoryRecords = (options.historyRecords || []).filter(Boolean);
-
     if (!changes.length) {
-      var noChangePatch = {};
-      if (extraHistoryRecords.length) {
-        noChangePatch.eventHistory = history.appendHistory(current.localState.eventHistory, extraHistoryRecords);
-      }
       if (options.localPatch) {
-        Object.keys(options.localPatch).forEach(function(key) {
-          noChangePatch[key] = options.localPatch[key];
-        });
-      }
-      if (Object.keys(noChangePatch).length) {
-        await storage.saveLocalState(noChangePatch);
+        await storage.saveLocalState(options.localPatch);
       }
       if (options.syncPatch) {
         await storage.saveSyncOptions(options.syncPatch);
@@ -738,12 +443,10 @@ importScripts(
     var localPatch = {
       eventHistory: history.appendHistory(
         current.localState.eventHistory,
-        extraHistoryRecords.concat(history.createRecords(changes, Object.assign({}, context || {}, {
-          action: options.action || (context && context.source) || "manual",
-          debugVerbose: !!current.options.debugHistoryVerbose
-        })))
+        history.createRecords(changes, context)
       )
     };
+
     var usage = applyUsageMetrics(current.localState, changes, context);
     localPatch.recentlyUsed = usage.recentlyUsed;
     localPatch.usageCounters = usage.usageCounters;
@@ -756,9 +459,9 @@ importScripts(
       );
     }
 
-    await Promise.all(changes.map(function(change) {
-      return setExtensionEnabled(change.id, change.enabled);
-    }));
+    for (var index = 0; index < changes.length; index += 1) {
+      await setExtensionEnabled(changes[index].id, changes[index].enabled);
+    }
 
     localPatch.reminderQueue = await reminders.syncReminderQueue(
       current.localState.reminderQueue,
@@ -924,42 +627,13 @@ importScripts(
 
   async function saveOptions(payload) {
     var nextOptions = await storage.saveSyncOptions(payload.options || {});
-    var localState = await storage.loadLocalState();
-
     if (!nextOptions.enableReminders) {
-      await Promise.all(localState.reminderQueue.map(function(item) {
-        return clearAlarm(item.alarmName);
-      }));
+      var localState = await storage.loadLocalState();
+      for (var index = 0; index < localState.reminderQueue.length; index += 1) {
+        await clearAlarm(localState.reminderQueue[index].alarmName);
+      }
       await storage.saveLocalState({ reminderQueue: [] });
     }
-
-    if (nextOptions.urlRuleDisableOnClose || Number(nextOptions.urlRuleTimeoutMinutes || 0) <= 0) {
-      await clearUrlRuleTimeoutQueue(localState.urlRuleTimeoutQueue);
-    }
-
-    return buildState();
-  }
-
-  async function updateExtensionProfileMembership(payload) {
-    var extensionId = payload.extensionId;
-    var profileName = (payload.profileName || "").trim();
-    var shouldInclude = !!payload.shouldInclude;
-    if (!extensionId || !profileName) {
-      throw new Error("Both extensionId and profileName are required.");
-    }
-
-    var profilesState = await storage.loadProfiles();
-    if (!Object.prototype.hasOwnProperty.call(profilesState.map, profileName)) {
-      throw new Error("Unknown profile: " + profileName);
-    }
-
-    var nextProfiles = storage.clone(profilesState.map);
-    var existingItems = Array.isArray(nextProfiles[profileName]) ? nextProfiles[profileName].slice() : [];
-    nextProfiles[profileName] = shouldInclude
-      ? storage.uniqueArray(existingItems.concat([extensionId]))
-      : existingItems.filter(function(id) { return id !== extensionId; });
-
-    await storage.saveProfiles(nextProfiles);
     return buildState();
   }
 
@@ -967,9 +641,9 @@ importScripts(
     var envelope = importExport.validateBackupEnvelope(payload.envelope);
     var currentLocalState = await storage.loadLocalState();
 
-    await Promise.all(currentLocalState.reminderQueue.map(function(item) {
-      return clearAlarm(item.alarmName);
-    }));
+    for (var index = 0; index < currentLocalState.reminderQueue.length; index += 1) {
+      await clearAlarm(currentLocalState.reminderQueue[index].alarmName);
+    }
 
     await storage.saveSyncOptions(envelope.settings);
     await storage.saveProfiles(envelope.profiles);
@@ -1015,37 +689,8 @@ importScripts(
 
   async function getExtensionMetadataPayload(payload) {
     return {
-      metadata: await loadExtensionMetadata(payload.extensionIds || [], {
-        forceRefresh: !!payload.forceRefresh
-      })
+      metadata: await loadExtensionMetadata(payload.extensionIds || [])
     };
-  }
-
-  async function assignExtensionProfile(extensionId, profileName) {
-    if (!extensionId) {
-      throw new Error("Missing extension id.");
-    }
-
-    var profilesState = await storage.loadProfiles();
-    var map = storage.clone(profilesState.map || {});
-    Object.keys(map).forEach(function(name) {
-      if (name.indexOf("__") === 0) {
-        return;
-      }
-      map[name] = (map[name] || []).filter(function(id) {
-        return id !== extensionId;
-      });
-    });
-
-    if (profileName) {
-      if (!map[profileName] || profileName.indexOf("__") === 0) {
-        throw new Error("Unknown profile: " + profileName);
-      }
-      map[profileName] = storage.uniqueArray((map[profileName] || []).concat([extensionId]));
-    }
-
-    await storage.saveProfiles(map);
-    return buildState();
   }
 
   async function runUninstallExtension(extensionId) {
@@ -1058,47 +703,10 @@ importScripts(
       result: await driveSync.syncDrive()
     };
   }
+
   async function openDashboard() {
     await createTab("dashboard.html");
     return { opened: true };
-  }
-
-  async function testUrlRules(url) {
-    var current = await loadContext();
-    var analysis = urlRules.analyzeUrl(url, current.localState.urlRules);
-    var itemMap = current.items.reduce(function(result, item) {
-      result[item.id] = item;
-      return result;
-    }, {});
-    var finalChanges = Object.keys(analysis.finalChanges).map(function(extensionId) {
-      var change = analysis.finalChanges[extensionId];
-      var item = itemMap[extensionId];
-      return {
-        enabled: !!change.enabled,
-        extensionId: extensionId,
-        extensionName: item ? item.name : extensionId,
-        previousEnabled: item ? !!item.enabled : null,
-        ruleId: change.ruleId || null,
-        ruleName: change.ruleName || null,
-        urlPattern: change.urlPattern || ""
-      };
-    });
-    var result = finalChanges.length ? "changed" : analysis.result;
-    if (finalChanges.length) {
-      var hasActualChange = finalChanges.some(function(change) {
-        return change.previousEnabled !== null && change.previousEnabled !== change.enabled;
-      });
-      if (!hasActualChange) {
-        result = "no_op";
-      }
-    }
-    return {
-      finalChanges: finalChanges,
-      matchedRules: analysis.matchedRules,
-      perExtension: analysis.perExtension,
-      result: result,
-      url: url
-    };
   }
 
   async function cycleProfiles(step) {
@@ -1121,65 +729,24 @@ importScripts(
     return runApplyProfile(names[nextIndex]);
   }
 
-  function clearRuleApplication(tabId) {
-    delete tabRuleApplications[tabId];
-  }
-
-  async function evaluateRulesForUrl(url, tabId) {
+  async function evaluateRulesForUrl(url) {
     var current = await loadContext();
-    var analysis = urlRules.analyzeUrl(url, current.localState.urlRules);
-    var desired = analysis.finalChanges;
-    var desiredEntries = Object.keys(desired).map(function(extensionId) {
+    var desired = urlRules.resolveChanges(url, current.localState.urlRules);
+    var changes = Object.keys(desired).map(function(extensionId) {
       return {
         enabled: desired[extensionId].enabled,
         id: extensionId,
-        ruleId: desired[extensionId].ruleId,
-        ruleName: desired[extensionId].ruleName,
-        tabId: tabId,
-        url: url
+        ruleId: desired[extensionId].ruleId
       };
     });
-    var itemMap = current.items.reduce(function(result, item) {
-      result[item.id] = item;
-      return result;
-    }, {});
-    var actualChanges = desiredEntries.filter(function(entry) {
-      var item = itemMap[entry.id];
-      return item && item.type === "extension" && item.mayDisable && (!!item.enabled !== !!entry.enabled);
-    });
-    var debugRecord = createDebugHistoryRecord(current, {
-      action: "url_rule_evaluation",
-      debug: {
-        matchedEntries: desiredEntries,
-        matchedRuleCount: storage.uniqueArray(desiredEntries.map(function(entry) { return entry.ruleId; })).length
-      },
-      event: "evaluation",
-      label: "URL rule evaluation",
-      result: !desiredEntries.length ? "no_match" : (!actualChanges.length ? "no_op" : "changed"),
-      tabId: tabId,
-      triggeredBy: "rule",
-      url: url
-    });
 
-    if (tabId != null) {
-      if (desiredEntries.length) {
-        tabRuleApplications[tabId] = buildRuleApplication(desiredEntries, url, tabId);
-      } else {
-        clearRuleApplication(tabId);
-      }
-    }
-
-    if (debugRecord) {
-      await appendDebugHistoryRecords([debugRecord]);
-    }
-
-    if (!desiredEntries.length) {
+    if (!changes.length) {
       return buildState();
     }
 
     return applyExtensionChanges(
-      desiredEntries,
-      { source: "rule", tabId: tabId, url: url },
+      changes,
+      { source: "rule" },
       {
         action: "url_rule",
         pushUndo: false,
@@ -1189,18 +756,17 @@ importScripts(
   }
 
   function scheduleRuleEvaluation(tabId, url) {
+    if (!urlRules.isSupportedUrl(url)) {
+      return;
+    }
+
     if (urlEvaluationTimers[tabId]) {
       clearTimeout(urlEvaluationTimers[tabId]);
-      delete urlEvaluationTimers[tabId];
-    }
-    if (!urlRules.isSupportedUrl(url)) {
-      clearRuleApplication(tabId);
-      return;
     }
 
     urlEvaluationTimers[tabId] = setTimeout(function() {
       delete urlEvaluationTimers[tabId];
-      evaluateRulesForUrl(url, tabId).catch(function(error) {
+      evaluateRulesForUrl(url).catch(function(error) {
         console.error("url_rule_failed", error);
       });
     }, 300);
@@ -1210,8 +776,6 @@ importScripts(
     switch (message.type) {
       case "APPLY_PROFILE":
         return { state: await runApplyProfile(message.profileName) };
-      case "ASSIGN_EXTENSION_PROFILE":
-        return { state: await assignExtensionProfile(message.extensionId, message.profileName) };
       case "EXPORT_BACKUP":
         return await exportBackup();
       case "GET_EXTENSION_METADATA":
@@ -1230,8 +794,6 @@ importScripts(
         return { state: await saveOptions(message) };
       case "SAVE_URL_RULES":
         return { state: await saveUrlRules(message) };
-      case "TEST_URL_RULES":
-        return await testUrlRules(message.url);
       case "SET_EXTENSION_STATE":
         return {
           state: await applyExtensionChanges(
@@ -1251,8 +813,6 @@ importScripts(
         return { state: await runUndo() };
       case "UNINSTALL_EXTENSION":
         return { state: await runUninstallExtension(message.extensionId) };
-      case "UPDATE_EXTENSION_PROFILE_MEMBERSHIP":
-        return { state: await updateExtensionProfileMembership(message) };
       default:
         throw new Error("Unsupported message type: " + message.type);
     }
@@ -1340,99 +900,13 @@ importScripts(
     scheduleRuleEvaluation(details.tabId, details.url);
   });
 
-  chrome.tabs.onRemoved.addListener(function(tabId) {
-    var application = tabRuleApplications[tabId];
-    delete tabRuleApplications[tabId];
-    if (!application || !application.enabledIds.length) { return; }
-
-    loadContext().then(function(ctx) {
-      var options = ctx.options || {};
-      var disableOnClose = !!options.urlRuleDisableOnClose;
-      var minutes = Number(options.urlRuleTimeoutMinutes || 0);
-      var entries = application.enabledIds.map(function(id) {
-        var ruleEntry = application.entriesById[id] || {};
-        return {
-          enabled: true,
-          id: id,
-          ruleId: ruleEntry.ruleId || null,
-          ruleName: ruleEntry.ruleName || null,
-          tabId: tabId,
-          url: ruleEntry.url || application.url || ""
-        };
-      });
-      if (disableOnClose) {
-        var disableChanges = entries.map(function(entry) {
-          return {
-            enabled: false,
-            id: entry.id,
-            ruleId: entry.ruleId,
-            ruleName: entry.ruleName,
-            tabId: entry.tabId,
-            url: entry.url
-          };
-        });
-        var closeDebugRecord = createDebugHistoryRecord(ctx, {
-          action: "url_rule_close_disable",
-          debug: {
-            entries: disableChanges
-          },
-          event: "close",
-          label: "URL rule close disable",
-          result: "closing_tab",
-          tabId: tabId,
-          triggeredBy: "rule",
-          url: application.url || ""
-        });
-        applyExtensionChanges(disableChanges, { source: "rule" }, {
-          action: "url_rule_close",
-          historyRecords: closeDebugRecord ? [closeDebugRecord] : [],
-          pushUndo: false
-        }).catch(function(err) {
-          console.error("rule_close_disable_failed", err);
-        });
-        return;
-      }
-      if (minutes <= 0) {
-        return;
-      }
-      var timeoutDebugRecord = createDebugHistoryRecord(ctx, {
-        action: "url_rule_timeout_scheduled",
-        debug: {
-          delayMinutes: minutes,
-          entries: entries
-        },
-        event: "timeout",
-        label: "URL rule timeout scheduled",
-        result: "scheduled",
-        tabId: tabId,
-        triggeredBy: "rule",
-        url: application.url || ""
-      });
-      if (timeoutDebugRecord) {
-        appendDebugHistoryRecords([timeoutDebugRecord]).catch(function(err) {
-          console.error("rule_timeout_debug_history_failed", err);
-        });
-      }
-      scheduleUrlRuleTimeoutDisable(entries, minutes, tabId).catch(function(err) {
-        console.error("rule_timeout_schedule_failed", err);
-      });
-    }).catch(function(err) {
-      console.error("rule_timeout_context_failed", err);
-    });
-  });
-
   chrome.alarms.onAlarm.addListener(function(alarm) {
-    if (reminders.isReminderAlarm(alarm.name)) {
-      reminders.handleAlarm(alarm.name).catch(function(error) {
-        console.error("reminder_alarm_failed", error);
-      });
+    if (!reminders.isReminderAlarm(alarm.name)) {
       return;
     }
-    if (isUrlRuleTimeoutAlarm(alarm.name)) {
-      handleUrlRuleTimeoutAlarm(alarm.name).catch(function(error) {
-        console.error("url_rule_timeout_alarm_failed", error);
-      });
-    }
+    reminders.handleAlarm(alarm.name).catch(function(error) {
+      console.error("reminder_alarm_failed", error);
+    });
   });
 
   runMigrations().catch(function(error) {
@@ -1444,7 +918,6 @@ importScripts(
     buildGenericStoreUrl: buildGenericStoreUrl,
     defaultCategoryForInstallType: defaultCategoryForInstallType,
     firstDescriptionLine: firstDescriptionLine,
-    isAppType: isAppType,
     loadExtensionMetadata: loadExtensionMetadata,
     normalizeExtensions: normalizeExtensions,
     normalizeStoreUrl: normalizeStoreUrl,

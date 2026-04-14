@@ -143,79 +143,53 @@ Removed from `styles/index.css`:
 
 ---
 
-## Round 3 — Popup, Rules, History, And Settings Stabilization
+## Round 3 — Dashboard Fix + Profiles Layout + Dark Mode Inputs (Pending)
 
-Applied after the earlier 2.0 UI rounds. This round fixed several user-facing regressions and tightened the dashboard diagnostics flow.
+These changes are planned but not yet implemented. See `.claude/plans/zazzy-hugging-pearl.md` for the full implementation spec.
 
-### Popup And Appearance
+### Bug: Dashboard tab buttons do not switch sections
 
-- Fixed reversed per-extension toggle icons so the popup dongles reflect the current enabled state.
-- Added active profile badge display in the popup header.
-- Extended popup spacing controls with working negative compaction behavior for vertical spacing and padding.
-- Added extension icon size control and preserved expanded action row layout selection.
+**Root cause:** `visible: isTab('history')` in KSB does not reliably track the `activeTab` observable dependency when accessed through a plain function call expression. All sections appear visible simultaneously.
 
-### URL Rules And History
+**Fix:** Replace `isTab()` call pattern with explicit `ko.pureComputed` booleans per tab (`historyTab`, `groupsTab`, `rulesTab`, `aliasesTab`, `dataTab`) and reference them directly in `visible:` and `css:{}` bindings.
 
-- Fixed repeated URL-rule close handling and delayed auto-disable scheduling by preserving per-tab rule application metadata.
-- Expanded history records with `action`, `result`, `ruleName`, `tabId`, URL, and previous/next state details.
-- Added debug-only rule evaluation, timeout scheduling, and close-triggered history entries.
-- Removed the invalid install-time optional permission request and kept Chrome Web Store permission behind explicit user actions instead.
+**Files:** `js/dashboard.js`, `dashboard.html`
 
-### Dashboard And Rules UX
+### Bug: Options page inputs and selects have white background in dark mode
 
-- Tightened the URL Rules editor layout with collapsed searchable enable/disable lists and compact selection summaries.
-- Improved Dashboard History readability with richer detail formatting.
-- Removed duplicated debug-history settings UI in Options.
+**Root cause:** `input[type="text"], input[type="number"], select` in `styles/options.css` use hardcoded `background: #fff`. No dark mode override exists.
 
-## Round 4 — Rule Analysis And Docs Cleanup
+**Fix:** Change to `background: var(--panel)` which resolves to `#ffffff` in light mode and `#1a2234` in dark mode. Also fix `#menu a` white pill background to use `var(--accent-soft)` in dark mode.
 
-Applied after the stabilization round to make rule behavior easier to inspect without mutating extension state.
+**Files:** `styles/options.css`
 
-### Rule Analysis
+### Bug: Dashboard section headings and grid cards have hardcoded light-mode colors
 
-- Added a shared URL-rule analysis path in `js/url-rules.js` so dry-run inspection uses the same precedence logic as live evaluation.
-- Added a background `TEST_URL_RULES` message path for non-mutating rule testing.
-- Added a dashboard rule tester that shows matched rules, final extension outcomes, and override chains.
-- Added a dashboard jump from history rows back to the related rule editor card.
+**Root cause:** `dashboard.css` uses `color: #365f92`, `color: #5e6c7d`, `background: #f7f9fc`, `border: 1px solid #d2dcea` hardcoded.
 
-### History Filters
+**Fix:** Replace with `var(--accent)`, `var(--muted)`, `var(--surface)`, `var(--border)`.
 
-- Added dashboard filters for history source and result categories.
-- Rendered rule-related rows with clearer result chips and preserved related rule metadata for drill-down.
+**Files:** `styles/dashboard.css`
 
-### Documentation Cleanup
+### Feature: Allow item padding to be set to 0
 
-- Moved stale “pending” language out of the main status doc for already-shipped dashboard and settings fixes.
-- Kept the backlog and architecture docs as planning references instead of treating them as the live implementation status.
+**Fix:** Change `min="2"` to `min="0"` on the `itemPaddingPx` input in `options.html`.
 
-## Round 5 — Popup Density Defaults And Multi-Page Permission Banner
+**Files:** `options.html`
 
-Applied after the rule-analysis round to tighten the default popup experience and make Chrome Web Store access requests more discoverable.
+### Feature: Profiles page layout — extensions left, profile management right
 
-### Popup Controls And Defaults
+The current layout has the profile list (sidebar) on the left and the extension checklist on the right. User requested swap: extension list on left, profile management on right.
 
-- Added popup header icon size control.
-- Added popup content padding and popup scrollbar controls.
-- Added popup profile-button `icons_only` mode in addition to `full` and `compact`.
-- Changed fresh-default popup settings to a denser baseline:
-  - `sortMode = "recent"`
-  - `showPopupVersionChips = false`
-  - `popupHeaderIconSize = "compact"`
-  - `popupScrollbarMode = "invisible"`
-  - `popupProfilePillTextMode = "icons_only"`
-  - `popupTableActionPanelPosition = "below_name"`
-  - `dynamicSizing = false`
+**Fix:** Swap `.sidebar` and `.extensions` divs in `profiles.html`. Update CSS grid column sizes in `styles/options.css` from `minmax(260px, 320px) minmax(0, 1fr)` to `minmax(0, 1fr) minmax(260px, 320px)`.
 
-### Permission Banner Coverage
+**Files:** `profiles.html`, `styles/options.css`
 
-- Added the Chrome Web Store permission banner to Options and Profiles in addition to Dashboard.
-- Banner visibility now depends on actual permission state and stays visible until the permission is granted.
+### Feature: Sort options for extension list on profiles page
 
-### Popup Layout Follow-Up
+Add sort controls (A-Z, Popular, Recent, Profiles) above the extension checklist. A `sortedExtensions` pureComputed sorts `ext.extensions()` by the selected mode. A `profileCountMap` observable tracks how many profiles each extension belongs to, enabling "Profiles" sort.
 
-- Fixed table-row chevron direction so collapsed rows point left and expanded rows point down.
-- Reworked popup gutter and full-bleed row layout so list rows and expanded action panels adapt correctly to `popupMainPaddingPx`.
-- Applied popup scrollbar modes to the real popup scroll surface instead of relying on a body-only style hook.
+**Files:** `js/profiles.js`, `profiles.html`
 
 ---
 
@@ -227,7 +201,6 @@ Applied after the rule-analysis round to tighten the default popup experience an
 - Drive sync is scaffolded but not fully enabled because OAuth configuration is still missing.
 - String-enum appearance options (`fontSize`, `spacingScale`) were replaced with numeric pixel values to give users direct control.
 - Sidebar layout in the popup was removed to prevent extension name truncation.
-- Optional Chrome Web Store permission is requested from visible UI surfaces, not automatically on install, because Chrome blocks that flow without a user gesture.
 
 ## What Is Still Deferred
 
@@ -249,4 +222,4 @@ Unit tests cover pure logic. Build validation covers manifest and packaging. Man
 
 - The branch changed a large surface area across multiple rounds. End-to-end manual testing in Chrome is required before release.
 - The build and packaging flows are verified locally and in GitHub Actions, but that is not a substitute for loading the unpacked extension and exercising all UI surfaces.
-- Additional browser-level validation is still needed for the new dashboard rule tester, history filters, and live URL-rule behavior in Chrome.
+- Round 3 changes (dashboard tab fix, profiles layout, dark mode inputs) are not yet implemented and should be treated as open bugs until merged.

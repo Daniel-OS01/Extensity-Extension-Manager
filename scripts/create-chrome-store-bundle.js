@@ -5,7 +5,6 @@ const path = require("node:path");
 const repoRoot = path.resolve(__dirname, "..");
 const distZipPath = path.join(repoRoot, "dist", "dist.zip");
 const manifestPath = path.join(repoRoot, "manifest.json");
-const packageJsonPath = path.join(repoRoot, "package.json");
 const artifactsRoot = path.join(repoRoot, "artifacts", "chrome-web-store");
 const generatedAt = new Date().toISOString();
 
@@ -24,10 +23,8 @@ function sha256(filePath) {
 assert(fs.existsSync(distZipPath), "Expected dist/dist.zip to exist. Run `make dist` before bundling.");
 
 const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
-const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
 const version = manifest.version;
-const packageName = packageJson.name || "extensity-plus";
-const extensionZipName = `${packageName}-v${version}.zip`;
+const extensionZipName = `extensity-plus-v${version}.zip`;
 const extensionZipPath = path.join(artifactsRoot, extensionZipName);
 const manifestCopyPath = path.join(artifactsRoot, "manifest.json");
 const metadataPath = path.join(artifactsRoot, "submission-metadata.json");
