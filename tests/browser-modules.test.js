@@ -1691,6 +1691,30 @@ test("history records preserve source metadata and cap record count", () => {
   assert.equal(appended[499].id, "new-4");
 });
 
+test("history records handles append edge cases", () => {
+  const root = loadModule("js/history-logger.js");
+  const normalize = (val) => JSON.parse(JSON.stringify(val));
+
+  // existing is undefined
+  let result = root.ExtensityHistory.appendHistory(undefined, [{id: 1}]);
+  assert.deepEqual(normalize(result), [{id: 1}]);
+
+  // existing is not an array
+  result = root.ExtensityHistory.appendHistory({foo: "bar"}, [{id: 2}]);
+  assert.deepEqual(normalize(result), [{id: 2}]);
+
+  // records is not an array (single item)
+  result = root.ExtensityHistory.appendHistory([{id: 1}], {id: 2});
+  assert.deepEqual(normalize(result), [{id: 1}, {id: 2}]);
+
+  // records alone exceeds maxRecords
+  const hugeRecords = Array.from({length: 600}, (_, i) => ({id: i}));
+  result = root.ExtensityHistory.appendHistory([], hugeRecords);
+  assert.equal(result.length, 500);
+  assert.equal(result[0].id, 100);
+  assert.equal(result[499].id, 599);
+});
+
 test("background install does not request optional web store permission without user gesture", () => {
   let installListener = null;
   const permissionRequests = [];
