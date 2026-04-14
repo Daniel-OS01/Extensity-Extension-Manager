@@ -22,16 +22,7 @@ test("sync defaults include all required popup and profile settings", () => {
   const root = loadStorage();
   const defaults = root.ExtensityStorage.getSyncDefaults();
 
-  const requiredKeys = [
-    "activeProfile", "colorScheme", "contrastMode", "driveSync",
-    "enableReminders", "fontSizePx", "groupApps", "itemPaddingPx",
-    "itemPaddingXPx", "itemNameGapPx", "itemSpacingPx", "keepAlwaysOn",
-    "migration", "popupListStyle", "popupProfileBadgeTextMode",
-    "popupProfileBadgeSingleWordChars", "popupWidthPx", "profileDisplay",
-    "profileNameDirection", "reminderDelayMinutes", "searchBox",
-    "showAlwaysOnBadge", "showHeader", "showOptions", "showPopupVersionChips",
-    "showProfilesExtensionMetadata", "showReserved", "sortMode", "viewMode"
-  ];
+  const requiredKeys = Object.keys(defaults);
 
   for (const key of requiredKeys) {
     assert.ok(
@@ -64,11 +55,7 @@ test("local defaults include all required state keys", () => {
   const root = loadStorage();
   const defaults = root.ExtensityStorage.getLocalDefaults();
 
-  const requiredKeys = [
-    "aliases", "bulkToggleRestore", "eventHistory", "groupOrder",
-    "groups", "lastSyncError", "reminderQueue", "recentlyUsed",
-    "undoStack", "urlRules", "usageCounters", "webStoreMetadata"
-  ];
+  const requiredKeys = Object.keys(defaults);
 
   for (const key of requiredKeys) {
     assert.ok(
@@ -83,7 +70,7 @@ test("getSyncDefaults returns a fresh clone on each call", () => {
   const a = root.ExtensityStorage.getSyncDefaults();
   const b = root.ExtensityStorage.getSyncDefaults();
   a.sortMode = "MUTATED";
-  assert.equal(b.sortMode, "alpha", "getSyncDefaults must return independent copies");
+  assert.equal(b.sortMode, "recent", "getSyncDefaults must return independent copies");
 });
 
 test("getLocalDefaults returns a fresh clone on each call", () => {

@@ -1,0 +1,834 @@
+
+> extensity-plus@2.0.2 test /app
+> node --test tests/*.test.js
+
+TAP version 13
+# Subtest: isObject identifies objects and rejects other types
+ok 1 - isObject identifies objects and rejects other types
+  ---
+  duration_ms: 4.416692
+  type: 'test'
+  ...
+# Subtest: storage sync defaults expose popup and profile display settings
+ok 2 - storage sync defaults expose popup and profile display settings
+  ---
+  duration_ms: 2.169101
+  type: 'test'
+  ...
+# Subtest: normalizeProfileMap always includes reserved Base
+ok 3 - normalizeProfileMap always includes reserved Base
+  ---
+  duration_ms: 1.644468
+  type: 'test'
+  ...
+# Subtest: ensureSyncDefaults backfills missing profile direction keys
+ok 4 - ensureSyncDefaults backfills missing profile direction keys
+  ---
+  duration_ms: 1.747377
+  type: 'test'
+  ...
+# Subtest: ensureSyncDefaults preserves existing profile direction values
+ok 5 - ensureSyncDefaults preserves existing profile direction values
+  ---
+  duration_ms: 1.497825
+  type: 'test'
+  ...
+# Subtest: popup profile badge labels support full and compact formatting
+ok 6 - popup profile badge labels support full and compact formatting
+  ---
+  duration_ms: 4.368059
+  type: 'test'
+  ...
+# Subtest: clampInteger enforces boundaries through utility function
+ok 7 - clampInteger enforces boundaries through utility function
+  ---
+  duration_ms: 1.215923
+  type: 'test'
+  ...
+# Subtest: extension toggle icon reflects the current enabled state
+ok 8 - extension toggle icon reflects the current enabled state
+  ---
+  duration_ms: 2.10078
+  type: 'test'
+  ...
+# Subtest: ExtensityApi profile assignment methods emit expected chrome messages
+ok 9 - ExtensityApi profile assignment methods emit expected chrome messages
+  ---
+  duration_ms: 2.283706
+  type: 'test'
+  ...
+# Subtest: extension profile summary uses em dash separator and omits empty values
+ok 10 - extension profile summary uses em dash separator and omits empty values
+  ---
+  duration_ms: 2.116123
+  type: 'test'
+  ...
+# Subtest: default category only returns Developer for development installs
+ok 11 - default category only returns Developer for development installs
+  ---
+  duration_ms: 4.887553
+  type: 'test'
+  ...
+# Subtest: extension model keeps empty category for normal installs
+ok 12 - extension model keeps empty category for normal installs
+  ---
+  duration_ms: 3.923375
+  type: 'test'
+  ...
+# Subtest: popup list style migration maps legacy flatPopupList to popupListStyle
+ok 13 - popup list style migration maps legacy flatPopupList to popupListStyle
+  ---
+  duration_ms: 2.279279
+  type: 'test'
+  ...
+# Subtest: background parser extracts Web Store description, category, and canonical url
+ok 14 - background parser extracts Web Store description, category, and canonical url
+  ---
+  duration_ms: 2.883029
+  type: 'test'
+  ...
+# Subtest: background parser can extract category without users text near category links
+ok 15 - background parser can extract category without users text near category links
+  ---
+  duration_ms: 1.684768
+  type: 'test'
+  ...
+# Subtest: background parser extracts category from structured markers without relying on users text
+ok 16 - background parser extracts category from structured markers without relying on users text
+  ---
+  duration_ms: 1.457674
+  type: 'test'
+  ...
+# Subtest: background metadata uses fresh cache category without throwing
+ok 17 - background metadata uses fresh cache category without throwing
+  ---
+  duration_ms: 1.837648
+  type: 'test'
+  ...
+# Subtest: background metadata allows blank fetched category to clear cached placeholder
+ok 18 - background metadata allows blank fetched category to clear cached placeholder
+  ---
+  duration_ms: 1.895258
+  type: 'test'
+  ...
+# Subtest: background metadata falls back to blank category for non-development extension without metadata
+ok 19 - background metadata falls back to blank category for non-development extension without metadata
+  ---
+  duration_ms: 1.632471
+  type: 'test'
+  ...
+# Subtest: background normalization merges cached web store metadata into extension snapshots
+ok 20 - background normalization merges cached web store metadata into extension snapshots
+  ---
+  duration_ms: 16.792536
+  type: 'test'
+  ...
+# Subtest: background normalization keeps managed extension version
+ok 21 - background normalization keeps managed extension version
+  ---
+  duration_ms: 1.652064
+  type: 'test'
+  ...
+# Subtest: ExtensityApi has no duplicate method keys
+ok 22 - ExtensityApi has no duplicate method keys
+  ---
+  duration_ms: 2.501557
+  type: 'test'
+  ...
+# Subtest: background normalization preserves blank cached category for dev extension
+ok 23 - background normalization preserves blank cached category for dev extension
+  ---
+  duration_ms: 1.39467
+  type: 'test'
+  ...
+# Subtest: background metadata fresh-cache path preserves blank cached category
+ok 24 - background metadata fresh-cache path preserves blank cached category
+  ---
+  duration_ms: 1.564183
+  type: 'test'
+  ...
+# Subtest: import/export builds a versioned backup envelope
+ok 25 - import/export builds a versioned backup envelope
+  ---
+  duration_ms: 1.430629
+  type: 'test'
+  ...
+# Subtest: import/export validates backups and rejects unsupported versions
+ok 26 - import/export validates backups and rejects unsupported versions
+  ---
+  duration_ms: 1.613603
+  type: 'test'
+  ...
+# Subtest: import/export builds CSV rows with escaped content
+ok 27 - import/export builds CSV rows with escaped content
+  ---
+  duration_ms: 1.355418
+  type: 'test'
+  ...
+# Subtest: import/export csvEscape handles edge cases
+ok 28 - import/export csvEscape handles edge cases
+  ---
+  duration_ms: 1.014318
+  type: 'test'
+  ...
+# Subtest: options none preset keeps font size and zeroes spacing options
+ok 29 - options none preset keeps font size and zeroes spacing options
+  ---
+  duration_ms: 3.036993
+  type: 'test'
+  ...
+# Subtest: profiles add decorates custom profiles without parent-context bindings
+ok 30 - profiles add decorates custom profiles without parent-context bindings
+  ---
+  duration_ms: 6.276104
+  type: 'test'
+  ...
+# Subtest: url rules support wildcard, regex, and later-rule precedence
+ok 31 - url rules support wildcard, regex, and later-rule precedence
+  ---
+  duration_ms: 2.524826
+  type: 'test'
+  ...
+# Subtest: history records preserve source metadata and cap record count
+ok 32 - history records preserve source metadata and cap record count
+  ---
+  duration_ms: 1.820238
+  type: 'test'
+  ...
+# Subtest: background install does not request optional web store permission without user gesture
+ok 33 - background install does not request optional web store permission without user gesture
+  ---
+  duration_ms: 1.375096
+  type: 'test'
+  ...
+# Subtest: background isAppType identifies hosted and packaged apps
+ok 34 - background isAppType identifies hosted and packaged apps
+  ---
+  duration_ms: 1.541392
+  type: 'test'
+  ...
+# Subtest: history logger handles circular references gracefully in safeJson
+ok 35 - history logger handles circular references gracefully in safeJson
+  ---
+  duration_ms: 1.969436
+  type: 'test'
+  ...
+# Subtest: normalizePopupTextMode returns compact/icons_only or defaults to full
+ok 36 - normalizePopupTextMode returns compact/icons_only or defaults to full
+  ---
+  duration_ms: 1.780415
+  type: 'test'
+  ...
+# Subtest: popup template avoids secure-binding context variables
+ok 37 - popup template avoids secure-binding context variables
+  ---
+  duration_ms: 0.467186
+  type: 'test'
+  ...
+# Subtest: popup header uses a logo-only repository link
+ok 38 - popup header uses a logo-only repository link
+  ---
+  duration_ms: 0.638576
+  type: 'test'
+  ...
+# Subtest: popup table action panel spans full width in below-name mode
+ok 39 - popup table action panel spans full width in below-name mode
+  ---
+  duration_ms: 0.437538
+  type: 'test'
+  ...
+# Subtest: popup profile pills keep icon and text on one line
+ok 40 - popup profile pills keep icon and text on one line
+  ---
+  duration_ms: 0.497563
+  type: 'test'
+  ...
+# Subtest: popup profile pills expose real profile titles and a Base icon
+ok 41 - popup profile pills expose real profile titles and a Base icon
+  ---
+  duration_ms: 0.297176
+  type: 'test'
+  ...
+# Subtest: popup expanded action rows keep the profile selector inline
+ok 42 - popup expanded action rows keep the profile selector inline
+  ---
+  duration_ms: 0.866547
+  type: 'test'
+  ...
+# Subtest: popup rows expose direct profile membership and sort handlers
+ok 43 - popup rows expose direct profile membership and sort handlers
+  ---
+  duration_ms: 15.894292
+  type: 'test'
+  ...
+# Subtest: buildBackupEnvelope produces a v2.0.0 envelope with required top-level keys
+ok 44 - buildBackupEnvelope produces a v2.0.0 envelope with required top-level keys
+  ---
+  duration_ms: 3.20082
+  type: 'test'
+  ...
+# Subtest: buildBackupEnvelope includes only mayDisable extensions in extensionStates
+ok 45 - buildBackupEnvelope includes only mayDisable extensions in extensionStates
+  ---
+  duration_ms: 1.165725
+  type: 'test'
+  ...
+# Subtest: buildBackupEnvelope records correct enabled boolean for each extension
+ok 46 - buildBackupEnvelope records correct enabled boolean for each extension
+  ---
+  duration_ms: 1.369615
+  type: 'test'
+  ...
+# Subtest: validateBackupEnvelope rejects unsupported version strings
+ok 47 - validateBackupEnvelope rejects unsupported version strings
+  ---
+  duration_ms: 1.540636
+  type: 'test'
+  ...
+# Subtest: validateBackupEnvelope rejects version 1.0.0
+ok 48 - validateBackupEnvelope rejects version 1.0.0
+  ---
+  duration_ms: 1.247556
+  type: 'test'
+  ...
+# Subtest: validateBackupEnvelope rejects missing required keys
+ok 49 - validateBackupEnvelope rejects missing required keys
+  ---
+  duration_ms: 1.246618
+  type: 'test'
+  ...
+# Subtest: validateBackupEnvelope deduplicates extension IDs in profiles
+ok 50 - validateBackupEnvelope deduplicates extension IDs in profiles
+  ---
+  duration_ms: 2.2188
+  type: 'test'
+  ...
+# Subtest: round-trip: envelope built by buildBackupEnvelope passes validateBackupEnvelope unchanged
+ok 51 - round-trip: envelope built by buildBackupEnvelope passes validateBackupEnvelope unchanged
+  ---
+  duration_ms: 1.463337
+  type: 'test'
+  ...
+# Subtest: buildExtensionsCsv header row contains all expected column names
+ok 52 - buildExtensionsCsv header row contains all expected column names
+  ---
+  duration_ms: 1.508714
+  type: 'test'
+  ...
+# Subtest: buildExtensionsCsv with empty extension list produces only a header row
+ok 53 - buildExtensionsCsv with empty extension list produces only a header row
+  ---
+  duration_ms: 1.476161
+  type: 'test'
+  ...
+# Subtest: buildExtensionsCsv: commas inside alias are wrapped in double quotes
+ok 54 - buildExtensionsCsv: commas inside alias are wrapped in double quotes
+  ---
+  duration_ms: 1.328281
+  type: 'test'
+  ...
+# Subtest: buildExtensionsCsv: double-quotes in alias are escaped as double double-quotes
+ok 55 - buildExtensionsCsv: double-quotes in alias are escaped as double double-quotes
+  ---
+  duration_ms: 0.970968
+  type: 'test'
+  ...
+# Subtest: buildExtensionsCsv: multiple groups are pipe-separated and double-quoted
+ok 56 - buildExtensionsCsv: multiple groups are pipe-separated and double-quoted
+  ---
+  duration_ms: 3.316073
+  type: 'test'
+  ...
+# Subtest: buildExtensionsCsv: empty groupIds produces empty groups cell
+ok 57 - buildExtensionsCsv: empty groupIds produces empty groups cell
+  ---
+  duration_ms: 0.921953
+  type: 'test'
+  ...
+# /app/tests/message-api.test.js:2
+#     management: {},
+#                   ^
+# SyntaxError: Unexpected token ','
+#     at wrapSafe (node:internal/modules/cjs/loader:1637:18)
+#     at Module._compile (node:internal/modules/cjs/loader:1679:20)
+#     at Object..js (node:internal/modules/cjs/loader:1838:10)
+#     at Module.load (node:internal/modules/cjs/loader:1441:32)
+#     at Function._load (node:internal/modules/cjs/loader:1263:12)
+#     at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+#     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+#     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+#     at node:internal/main/run_main_module:36:49
+# Node.js v22.22.1
+# Subtest: tests/message-api.test.js
+not ok 3 - tests/message-api.test.js
+  ---
+  duration_ms: 47.5262
+  type: 'test'
+  location: '/app/tests/message-api.test.js:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: migratePopupListStyle returns false when migration marker is already set
+ok 59 - migratePopupListStyle returns false when migration marker is already set
+  ---
+  duration_ms: 3.844474
+  type: 'test'
+  ...
+# Subtest: migratePopupListStyle returns true on first run and sets the migration marker
+ok 60 - migratePopupListStyle returns true on first run and sets the migration marker
+  ---
+  duration_ms: 1.419446
+  type: 'test'
+  ...
+# Subtest: migratePopupListStyle idempotency: second call returns false
+ok 61 - migratePopupListStyle idempotency: second call returns false
+  ---
+  duration_ms: 3.100834
+  type: 'test'
+  ...
+# Subtest: migratePopupListStyle maps flatPopupList:true + card style to flat
+ok 62 - migratePopupListStyle maps flatPopupList:true + card style to flat
+  ---
+  duration_ms: 3.826785
+  type: 'test'
+  ...
+# Subtest: migratePopupListStyle does not override an already-set non-card popupListStyle
+ok 63 - migratePopupListStyle does not override an already-set non-card popupListStyle
+  ---
+  duration_ms: 1.355049
+  type: 'test'
+  ...
+# Subtest: migratePopupListStyle removes flatPopupList key from sync storage
+ok 64 - migratePopupListStyle removes flatPopupList key from sync storage
+  ---
+  duration_ms: 2.059613
+  type: 'test'
+  ...
+# Subtest: migrateTo2_0_0 moves aliases, groups, groupOrder, urlRules from sync to local
+ok 65 - migrateTo2_0_0 moves aliases, groups, groupOrder, urlRules from sync to local
+  ---
+  duration_ms: 4.433875
+  type: 'test'
+  ...
+# Subtest: migrateTo2_0_0 migrates toggled list to bulkToggleRestore when local restore is empty
+ok 66 - migrateTo2_0_0 migrates toggled list to bulkToggleRestore when local restore is empty
+  ---
+  duration_ms: 1.547492
+  type: 'test'
+  ...
+# Subtest: migrateTo2_0_0 does not overwrite non-empty local bulkToggleRestore
+ok 67 - migrateTo2_0_0 does not overwrite non-empty local bulkToggleRestore
+  ---
+  duration_ms: 1.969626
+  type: 'test'
+  ...
+# Subtest: migrateTo2_0_0 sets migration_2_0_0 marker in sync storage
+ok 68 - migrateTo2_0_0 sets migration_2_0_0 marker in sync storage
+  ---
+  duration_ms: 3.675807
+  type: 'test'
+  ...
+# Subtest: migrateTo2_0_0 completes without error when sync store is empty
+ok 69 - migrateTo2_0_0 completes without error when sync store is empty
+  ---
+  duration_ms: 1.470736
+  type: 'test'
+  ...
+# Subtest: normalizeProfileMap always includes __always_on and __favorites
+ok 70 - normalizeProfileMap always includes __always_on and __favorites
+  ---
+  duration_ms: 3.414453
+  type: 'test'
+  ...
+# Subtest: normalizeProfileMap preserves user profiles alongside reserved ones
+ok 71 - normalizeProfileMap preserves user profiles alongside reserved ones
+  ---
+  duration_ms: 3.97696
+  type: 'test'
+  ...
+# Subtest: normalizeProfileMap deduplicates extension IDs within each profile
+ok 72 - normalizeProfileMap deduplicates extension IDs within each profile
+  ---
+  duration_ms: 1.280832
+  type: 'test'
+  ...
+# Subtest: normalizeProfileMap with null input returns only reserved profiles
+ok 73 - normalizeProfileMap with null input returns only reserved profiles
+  ---
+  duration_ms: 1.783962
+  type: 'test'
+  ...
+# Subtest: normalizeProfileMap ignores falsy extension IDs within a profile
+ok 74 - normalizeProfileMap ignores falsy extension IDs within a profile
+  ---
+  duration_ms: 1.279702
+  type: 'test'
+  ...
+# Subtest: profileMapToItems places __always_on and __favorites before alphabetical user profiles
+ok 75 - profileMapToItems places __always_on and __favorites before alphabetical user profiles
+  ---
+  duration_ms: 16.371809
+  type: 'test'
+  ...
+# Subtest: profileMapToItems returns correct items array structure
+ok 76 - profileMapToItems returns correct items array structure
+  ---
+  duration_ms: 1.677793
+  type: 'test'
+  ...
+# Subtest: profileMapToItems includes all profiles from input
+ok 77 - profileMapToItems includes all profiles from input
+  ---
+  duration_ms: 1.397765
+  type: 'test'
+  ...
+# Subtest: formatProfileBadgeLabel: __always_on returns AO in compact mode
+ok 78 - formatProfileBadgeLabel: __always_on returns AO in compact mode
+  ---
+  duration_ms: 5.037255
+  type: 'test'
+  ...
+# Subtest: formatProfileBadgeLabel: __favorites returns Favo in compact mode
+ok 79 - formatProfileBadgeLabel: __favorites returns Favo in compact mode
+  ---
+  duration_ms: 1.657872
+  type: 'test'
+  ...
+# Subtest: formatProfileBadgeLabel: multi-word name uses initials in compact mode
+ok 80 - formatProfileBadgeLabel: multi-word name uses initials in compact mode
+  ---
+  duration_ms: 1.967993
+  type: 'test'
+  ...
+# Subtest: formatProfileBadgeLabel: single-word name uses first N chars in compact mode
+ok 81 - formatProfileBadgeLabel: single-word name uses first N chars in compact mode
+  ---
+  duration_ms: 1.324018
+  type: 'test'
+  ...
+# Subtest: formatProfileBadgeLabel: full mode returns display name (reserved profile uses friendly name)
+ok 82 - formatProfileBadgeLabel: full mode returns display name (reserved profile uses friendly name)
+  ---
+  duration_ms: 1.125473
+  type: 'test'
+  ...
+# Subtest: formatProfileBadgeLabel: char limit is respected for single-word names in compact mode
+ok 83 - formatProfileBadgeLabel: char limit is respected for single-word names in compact mode
+  ---
+  duration_ms: 1.069716
+  type: 'test'
+  ...
+# Subtest: pruneText handles null and undefined
+ok 84 - pruneText handles null and undefined
+  ---
+  duration_ms: 10.481388
+  type: 'test'
+  ...
+# Subtest: pruneText returns text as-is if within maxLength
+ok 85 - pruneText returns text as-is if within maxLength
+  ---
+  duration_ms: 3.275694
+  type: 'test'
+  ...
+# Subtest: pruneText trims text exceeding maxLength and appends ellipsis
+ok 86 - pruneText trims text exceeding maxLength and appends ellipsis
+  ---
+  duration_ms: 1.482669
+  type: 'test'
+  ...
+# Subtest: pruneText handles zero and negative maxLength gracefully
+ok 87 - pruneText handles zero and negative maxLength gracefully
+  ---
+  duration_ms: 1.374423
+  type: 'test'
+  ...
+# Subtest: pruneText handles non-string inputs
+ok 88 - pruneText handles non-string inputs
+  ---
+  duration_ms: 1.52787
+  type: 'test'
+  ...
+# Dangerous pattern took 0ms
+# Subtest: ReDoS vulnerability in matchUrl
+ok 89 - ReDoS vulnerability in matchUrl
+  ---
+  duration_ms: 4.359176
+  type: 'test'
+  ...
+# Subtest: Safe patterns still work
+ok 90 - Safe patterns still work
+  ---
+  duration_ms: 1.227077
+  type: 'test'
+  ...
+# Subtest: Long pattern is rejected
+ok 91 - Long pattern is rejected
+  ---
+  duration_ms: 1.0839
+  type: 'test'
+  ...
+# Subtest: Long URL is rejected
+ok 92 - Long URL is rejected
+  ---
+  duration_ms: 1.214101
+  type: 'test'
+  ...
+# Subtest: ExtensityReminders.isReminderAlarm
+ok 93 - ExtensityReminders.isReminderAlarm
+  ---
+  duration_ms: 3.359861
+  type: 'test'
+  ...
+# Subtest: sync defaults include all required popup and profile settings
+ok 94 - sync defaults include all required popup and profile settings
+  ---
+  duration_ms: 3.716101
+  type: 'test'
+  ...
+# Subtest: sync defaults total byte size fits within Chrome sync quota
+ok 95 - sync defaults total byte size fits within Chrome sync quota
+  ---
+  duration_ms: 3.225095
+  type: 'test'
+  ...
+# Subtest: local defaults include all required state keys
+ok 96 - local defaults include all required state keys
+  ---
+  duration_ms: 1.318178
+  type: 'test'
+  ...
+# Subtest: getSyncDefaults returns a fresh clone on each call
+ok 97 - getSyncDefaults returns a fresh clone on each call
+  ---
+  duration_ms: 1.368777
+  type: 'test'
+  ...
+# Subtest: getLocalDefaults returns a fresh clone on each call
+ok 98 - getLocalDefaults returns a fresh clone on each call
+  ---
+  duration_ms: 1.998776
+  type: 'test'
+  ...
+# Subtest: mergeDefaults deep-merges nested objects
+ok 99 - mergeDefaults deep-merges nested objects
+  ---
+  duration_ms: 1.790166
+  type: 'test'
+  ...
+# Subtest: mergeDefaults does not mutate the defaults argument
+ok 100 - mergeDefaults does not mutate the defaults argument
+  ---
+  duration_ms: 1.312999
+  type: 'test'
+  ...
+# Subtest: mergeDefaults handles non-object value argument gracefully
+ok 101 - mergeDefaults handles non-object value argument gracefully
+  ---
+  duration_ms: 2.540332
+  type: 'test'
+  ...
+# Subtest: normalizeProfileMap always includes __always_on and __favorites
+ok 102 - normalizeProfileMap always includes __always_on and __favorites
+  ---
+  duration_ms: 1.767182
+  type: 'test'
+  ...
+# Subtest: normalizeProfileMap deduplicates extension IDs
+ok 103 - normalizeProfileMap deduplicates extension IDs
+  ---
+  duration_ms: 1.664991
+  type: 'test'
+  ...
+# Subtest: normalizeProfileMap ignores empty-string profile names
+ok 104 - normalizeProfileMap ignores empty-string profile names
+  ---
+  duration_ms: 1.230568
+  type: 'test'
+  ...
+# Subtest: normalizeProfileMap with null input still returns reserved profiles
+ok 105 - normalizeProfileMap with null input still returns reserved profiles
+  ---
+  duration_ms: 1.060175
+  type: 'test'
+  ...
+# Subtest: uniqueArray removes duplicates and filters falsy values
+ok 106 - uniqueArray removes duplicates and filters falsy values
+  ---
+  duration_ms: 1.015424
+  type: 'test'
+  ...
+# Subtest: uniqueArray returns empty array for non-array input
+ok 107 - uniqueArray returns empty array for non-array input
+  ---
+  duration_ms: 1.033714
+  type: 'test'
+  ...
+# Subtest: profileMapToItems sorts reserved profiles before alphabetical user profiles
+ok 108 - profileMapToItems sorts reserved profiles before alphabetical user profiles
+  ---
+  duration_ms: 14.774156
+  type: 'test'
+  ...
+# Subtest: isSupportedUrl accepts http:// and https:// URLs
+ok 109 - isSupportedUrl accepts http:// and https:// URLs
+  ---
+  duration_ms: 4.613722
+  type: 'test'
+  ...
+# Subtest: isSupportedUrl rejects chrome://, chrome-extension://, and ftp:// URLs
+ok 110 - isSupportedUrl rejects chrome://, chrome-extension://, and ftp:// URLs
+  ---
+  duration_ms: 1.248468
+  type: 'test'
+  ...
+# Subtest: isSupportedUrl returns false for malformed, empty, and non-string input
+ok 111 - isSupportedUrl returns false for malformed, empty, and non-string input
+  ---
+  duration_ms: 1.168475
+  type: 'test'
+  ...
+# Subtest: matchUrl wildcard: * matches any path segment for http and https
+ok 112 - matchUrl wildcard: * matches any path segment for http and https
+  ---
+  duration_ms: 1.321802
+  type: 'test'
+  ...
+# Subtest: matchUrl wildcard: host mismatch returns false
+ok 113 - matchUrl wildcard: host mismatch returns false
+  ---
+  duration_ms: 1.15526
+  type: 'test'
+  ...
+# Subtest: matchUrl wildcard: pattern without wildcard requires exact match
+ok 114 - matchUrl wildcard: pattern without wildcard requires exact match
+  ---
+  duration_ms: 1.130403
+  type: 'test'
+  ...
+# Subtest: matchUrl wildcard: empty pattern returns false
+ok 115 - matchUrl wildcard: empty pattern returns false
+  ---
+  duration_ms: 1.126152
+  type: 'test'
+  ...
+# Subtest: matchUrl regex: valid regex matches and rejects correctly
+ok 116 - matchUrl regex: valid regex matches and rejects correctly
+  ---
+  duration_ms: 1.208122
+  type: 'test'
+  ...
+# Subtest: matchUrl regex: malformed regex returns false without throwing
+ok 117 - matchUrl regex: malformed regex returns false without throwing
+  ---
+  duration_ms: 1.773765
+  type: 'test'
+  ...
+# Subtest: matchUrl regex: empty pattern returns false
+ok 118 - matchUrl regex: empty pattern returns false
+  ---
+  duration_ms: 3.075487
+  type: 'test'
+  ...
+# Subtest: resolveChanges returns empty object for unsupported URL protocols
+ok 119 - resolveChanges returns empty object for unsupported URL protocols
+  ---
+  duration_ms: 2.033768
+  type: 'test'
+  ...
+# Subtest: resolveChanges returns empty object when no rules match
+ok 120 - resolveChanges returns empty object when no rules match
+  ---
+  duration_ms: 3.140877
+  type: 'test'
+  ...
+# Subtest: resolveChanges ignores inactive rules
+ok 121 - resolveChanges ignores inactive rules
+  ---
+  duration_ms: 1.139399
+  type: 'test'
+  ...
+# Subtest: resolveChanges: later rule overwrites earlier conflicting rule for same extension
+ok 122 - resolveChanges: later rule overwrites earlier conflicting rule for same extension
+  ---
+  duration_ms: 1.322041
+  type: 'test'
+  ...
+# Subtest: resolveChanges: applies enable and disable for different extensions independently
+ok 123 - resolveChanges: applies enable and disable for different extensions independently
+  ---
+  duration_ms: 1.121112
+  type: 'test'
+  ...
+# Subtest: resolveChanges: duplicate extension IDs in rule are deduplicated
+ok 124 - resolveChanges: duplicate extension IDs in rule are deduplicated
+  ---
+  duration_ms: 1.067207
+  type: 'test'
+  ...
+# Subtest: normalizeRule uses wildcard as default for unrecognised matchMethod
+ok 125 - normalizeRule uses wildcard as default for unrecognised matchMethod
+  ---
+  duration_ms: 0.96247
+  type: 'test'
+  ...
+# Subtest: normalizeRule preserves regex matchMethod
+ok 126 - normalizeRule preserves regex matchMethod
+  ---
+  duration_ms: 1.029608
+  type: 'test'
+  ...
+# Subtest: normalizeRule assigns 'Untitled Rule' when name is blank or whitespace
+ok 127 - normalizeRule assigns 'Untitled Rule' when name is blank or whitespace
+  ---
+  duration_ms: 1.016067
+  type: 'test'
+  ...
+# Subtest: normalizeRule defaults active to true when not specified
+ok 128 - normalizeRule defaults active to true when not specified
+  ---
+  duration_ms: 0.973257
+  type: 'test'
+  ...
+# Subtest: normalizeRules handles non-array input gracefully
+ok 129 - normalizeRules handles non-array input gracefully
+  ---
+  duration_ms: 0.917318
+  type: 'test'
+  ...
+# Subtest: normalizeRule handles null, undefined, and primitives safely
+ok 130 - normalizeRule handles null, undefined, and primitives safely
+  ---
+  duration_ms: 1.409854
+  type: 'test'
+  ...
+# Subtest: normalizeRule handles non-string values for name and urlPattern
+ok 131 - normalizeRule handles non-string values for name and urlPattern
+  ---
+  duration_ms: 1.168772
+  type: 'test'
+  ...
+# Subtest: normalizeRule handles invalid timeout values safely
+ok 132 - normalizeRule handles invalid timeout values safely
+  ---
+  duration_ms: 0.978721
+  type: 'test'
+  ...
+# Subtest: normalizeRule handles empty object safely
+ok 133 - normalizeRule handles empty object safely
+  ---
+  duration_ms: 1.014077
+  type: 'test'
+  ...
+1..133
+# tests 133
+# suites 0
+# pass 132
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 486.985003
+ ELIFECYCLE  Test failed. See above for more details.
