@@ -19,11 +19,11 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          cache: npm
+          cache: pnpm
           node-version: 22
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install
 
       - name: Run existing profile badge label tests
         id: test-existing
