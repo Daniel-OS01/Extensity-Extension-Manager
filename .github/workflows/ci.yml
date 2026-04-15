@@ -30,7 +30,19 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
       - name: Set up Node.js
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           cache: pnpm
@@ -74,7 +86,19 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event_name == 'workflow_dispatch' && 'main' || github.ref }}
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
       - name: Set up Node.js
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           cache: pnpm
@@ -111,7 +135,19 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event_name == 'workflow_dispatch' && 'main' || github.ref }}
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
       - name: Set up Node.js
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           cache: pnpm
@@ -149,7 +185,19 @@ jobs:
           fetch-depth: 0
           ref: main
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
       - name: Set up Node.js
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           cache: pnpm
@@ -225,7 +273,19 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
       - name: Set up Node.js
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           cache: pnpm
