@@ -746,6 +746,13 @@ document.addEventListener("DOMContentLoaded", function() {
         return;
       }
 
+      var target = event.target;
+      var interactiveTarget = target && target.closest && target.closest("button, input, select, a");
+      if (interactiveTarget && interactiveTarget !== event.currentTarget) {
+        event.stopPropagation();
+        return;
+      }
+
       if (item.isApp && item.isApp()) {
         self.launchApp(item);
       } else {

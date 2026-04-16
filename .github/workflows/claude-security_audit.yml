@@ -136,7 +136,7 @@ jobs:
           SECRET_PATTERNS=(
             'AIza[0-9A-Za-z\-_]{35}'         # Google API key
             'ghp_[0-9A-Za-z]{36}'             # GitHub personal access token
-            'sk-[a-zA-Z0-9]{32,}'             # OpenAI / Anthropic API key
+            'sk-(live|test|proj|ant)-[0-9A-Za-z_-]{20,}'  # OpenAI / Anthropic API key
             'AKIA[0-9A-Z]{16}'                # AWS access key
             'ya29\.[0-9A-Za-z\-_]+'           # Google OAuth access token
           )
