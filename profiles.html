@@ -22,7 +22,7 @@
         <span class="version-chip" data-sbind="visible: version, text: version"></span>
         Profiles
         <span class="profile-header-badge" data-sbind="visible: currentProfileIsNamed, attr:{style: 'border-left-color:' + currentProfileColor()}">
-          <i class="fa" data-sbind="attr:{class: 'fa ' + currentProfileIcon()}"></i>
+          <i class="fa" data-sbind="attr:{class: 'fa ' + currentProfileIcon()}" aria-hidden="true"></i>
           <span data-sbind="text: current_name, attr:{style: 'color:' + currentProfileColor()}"></span>
         </span>
       </h1>
@@ -39,7 +39,7 @@
   <section id="content" data-sbind="css: layoutClass">
     <p class="status error" data-sbind="visible: error, text: error"></p>
     <div class="permission-banner" data-sbind="visible: needsWebStorePermission">
-      <i class="fa fa-exclamation-triangle"></i>
+      <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
       <span>Grant Chrome Web Store access to enable extension metadata and store links.</span>
       <button type="button" title="Grant Chrome Web Store access" data-sbind="click: requestWebStorePermission">Grant access</button>
     </div>
@@ -61,7 +61,7 @@
         <div class="profile-meta-editor" data-sbind="visible: !current_profile().reserved()">
           <input type="color" class="profile-color-input" title="Profile color" data-sbind="value: current_profile().color" />
           <div class="profile-icon-picker">
-            <i class="fa profile-icon-preview" data-sbind="attr:{class: 'fa ' + current_profile().userIcon()}"></i>
+            <i class="fa profile-icon-preview" data-sbind="attr:{class: 'fa ' + current_profile().userIcon()}" aria-hidden="true"></i>
             <select class="profile-icon-select" title="Profile icon" data-sbind="value: current_profile().userIcon">
               <!-- ko foreach: iconOptions -->
               <option data-sbind="value: value, text: label"></option>
@@ -80,17 +80,17 @@
         <ul data-sbind="foreach: sortedExtensions">
           <li class="extension-row" data-sbind="css:{expanded: $parent.expandedExtensionId() == id()}">
             <button type="button" class="extension-row-header" data-sbind="click: $parent.toggleExtensionDetails">
-              <i class="fa fa-chevron-right extension-chevron" data-sbind="css:{expanded: $parent.expandedExtensionId() == id()}"></i>
+              <i class="fa fa-chevron-right extension-chevron" data-sbind="css:{expanded: $parent.expandedExtensionId() == id()}" aria-hidden="true"></i>
               <img data-sbind="attr:{src: icon}" width="16" height="16" />
               <span class="extension-copy">
                 <span class="extension-title-line">
                   <span class="extension-name" data-sbind="text: short_name"></span>
                   <span class="extension-version" data-sbind="visible: version, text: version"></span>
-                  <i class="fa fa-flask" title="Development" data-sbind="visible: is_development"></i>
+                  <i class="fa fa-flask" title="Development" data-sbind="visible: is_development" aria-hidden="true"></i>
                 </span>
                 <span class="extension-profile-badges" data-sbind="foreach: profileBadges">
                   <span class="profile-ext-badge" data-sbind="attr:{style: 'border-left-color:' + color, title: name}">
-                    <i class="fa" data-sbind="attr:{class: 'fa ' + iconClass}"></i>
+                    <i class="fa" data-sbind="attr:{class: 'fa ' + iconClass}" aria-hidden="true"></i>
                   </span>
                 </span>
                 <span class="extension-meta" data-sbind="visible: $parent.shouldShowProfilesExtensionMetadata, text: profileSummary"></span>
@@ -102,7 +102,7 @@
                 <div class="profile-membership-list">
                   <!-- ko foreach: $root.profileMembershipRows -->
                   <button type="button" class="compact-action-button" data-sbind="click: toggleFn, clickBubble: false, css:{active: active}">
-                    <i class="fa" data-sbind="attr:{class: 'fa ' + icon}"></i> <span data-sbind="text: label"></span>
+                    <i class="fa" data-sbind="attr:{class: 'fa ' + icon}" aria-hidden="true"></i> <span data-sbind="text: label"></span>
                   </button>
                   <!-- /ko -->
                 </div>
@@ -127,19 +127,19 @@
         </form>
 
         <ul class="items">
-          <li title="Edit the Always On profile" data-sbind="click: selectAlwaysOn, css:{active: '__always_on' == current_name()}"><i class="fa fa-lightbulb-o"></i> Always On</li>
-          <li title="Edit the Base profile" data-sbind="click: selectBase, css:{active: '__base' == current_name()}"><i class="fa fa-home"></i> Base</li>
-          <li title="Edit the Favorites profile" data-sbind="click: selectFavorites, css:{active: '__favorites' == current_name()}"><i class="fa fa-star"></i> Favorites</li>
+          <li title="Edit the Always On profile" data-sbind="click: selectAlwaysOn, css:{active: '__always_on' == current_name()}"><i class="fa fa-lightbulb-o" aria-hidden="true"></i> Always On</li>
+          <li title="Edit the Base profile" data-sbind="click: selectBase, css:{active: '__base' == current_name()}"><i class="fa fa-home" aria-hidden="true"></i> Base</li>
+          <li title="Edit the Favorites profile" data-sbind="click: selectFavorites, css:{active: '__favorites' == current_name()}"><i class="fa fa-star" aria-hidden="true"></i> Favorites</li>
         </ul>
 
         <ul class="items" data-sbind="foreach: profiles.items, attr:{dir: profileNameDir}">
           <li data-sbind="visible: listVisible, click: activate, css:{active: isActive}">
             <input type="checkbox" data-sbind="checked: selected, clickBubble: false" />
             <span class="profile-color-dot" data-sbind="attr:{style: 'background:' + color()}"></span>
-            <i class="fa" data-sbind="attr:{class: 'fa ' + icon()}"></i>
+            <i class="fa" data-sbind="attr:{class: 'fa ' + icon()}" aria-hidden="true"></i>
             <a class="profile-name-text" data-sbind="text: short_name"></a>
             <span class="profile-count" title="Extensions in this profile" data-sbind="text: itemCount"></span>
-            <i class="fa fa-trash-o remove-profile" title="Delete this profile" data-sbind="click: requestRemove, clickBubble: false"></i>
+            <i class="fa fa-trash-o remove-profile" title="Delete this profile" data-sbind="click: requestRemove, clickBubble: false" aria-hidden="true"></i>
           </li>
         </ul>
 

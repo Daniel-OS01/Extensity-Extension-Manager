@@ -21,7 +21,7 @@
       <img src="images/icon48.png" width="16" height="16" alt="Extensity-Plus" />
     </a>
     <span class="active-profile-badge" data-sbind="visible: activeProfileObj, attr:{style: activeProfileBadgeStyle}">
-      <i class="fa" data-sbind="attr:{class: activeProfileIconClass}"></i>
+      <i class="fa" data-sbind="attr:{class: activeProfileIconClass}" aria-hidden="true"></i>
       <span data-sbind="text: activeProfileName"></span>
     </span>
     <a href="#" class="page" title="Undo" aria-label="Undo" data-sbind="click: switch.undo, css:{disabled: !canUndo()}"><i class="fa fa-undo" aria-hidden="true"></i></a>
@@ -48,7 +48,7 @@
 </section>
 
 <section id="search" class="main" data-sbind="if: opts.searchBox">
-  <p><i class="fa fa-search"></i> <input type="text" data-sbind="value: search.q, valueUpdate: 'keyup'" tabindex="1" autofocus /></p>
+  <p><i class="fa fa-search" aria-hidden="true"></i> <input type="text" data-sbind="value: search.q, valueUpdate: 'keyup'" tabindex="1" autofocus /></p>
 </section>
 
 <section id="content" class="main" data-sbind="visible: !loading()">
@@ -57,11 +57,11 @@
     <ul class="items" data-sbind="foreach: listedProfiles">
       <li class="app keyboard-row" tabindex="0" data-sbind="css: {active: isActive()}">
         <div class="profile-row" data-sbind="click: selectProfile, attr:{title: profileTooltip}">
-          <i class="fa fa-check" data-sbind="visible: showPillCheck"></i>
-          <i class="fa fa-lightbulb-o" data-sbind="visible: showAlwaysOnIcon"></i>
-          <i class="fa fa-home" data-sbind="visible: showBaseIcon"></i>
-          <i class="fa fa-star" data-sbind="visible: showFavoritesIcon"></i>
-          <i class="fa profile-icon-display" data-sbind="visible: showCustomIcon, attr:{class: 'fa ' + icon()}"></i>
+          <i class="fa fa-check" data-sbind="visible: showPillCheck" aria-hidden="true"></i>
+          <i class="fa fa-lightbulb-o" data-sbind="visible: showAlwaysOnIcon" aria-hidden="true"></i>
+          <i class="fa fa-home" data-sbind="visible: showBaseIcon" aria-hidden="true"></i>
+          <i class="fa fa-star" data-sbind="visible: showFavoritesIcon" aria-hidden="true"></i>
+          <i class="fa profile-icon-display" data-sbind="visible: showCustomIcon, attr:{class: 'fa ' + icon()}" aria-hidden="true"></i>
           <span data-sbind="visible: showPillText, text: popupLabel"></span>
           <span class="profile-count" title="Extensions in this profile" data-sbind="visible: showPillCount, text: itemCount"></span>
         </div>
@@ -94,7 +94,7 @@
   </section>
 
   <section data-sbind="visible: emptyItems">
-    <p class="empty"><i class="fa fa-exclamation-triangle"></i><br />No Extensions or Apps found.</p>
+    <p class="empty"><i class="fa fa-exclamation-triangle" aria-hidden="true"></i><br />No Extensions or Apps found.</p>
   </section>
 </section>
 
@@ -121,8 +121,8 @@
       <!-- ko foreach: profileBadges -->
       <span class="badge profile-badge" data-sbind="text: name, css: colorClass, attr:{style: badgeStyle, title: title}"></span>
       <!-- /ko -->
-      <i class="fa fa-flask" title="Development" data-sbind="visible: is_development()"></i>
-      <i class="fa fa-gear" title="Options" data-sbind="visible: showOptionsButton, click: launchOptionsAction, clickBubble: false"></i>
+      <i class="fa fa-flask" title="Development" data-sbind="visible: is_development()" aria-hidden="true"></i>
+      <i class="fa fa-gear" title="Options" data-sbind="visible: showOptionsButton, click: launchOptionsAction, clickBubble: false" aria-hidden="true"></i>
     </div>
   </li>
   <!-- /ko -->
@@ -135,7 +135,7 @@
           <span class="name" data-sbind="text: short_name, click: toggleCompactAction, clickBubble: false"></span>
           <span class="version-chip" data-sbind="visible: showVersionChip, text: version"></span>
           <span class="extension-subtitle" data-sbind="visible: showCategorySubtitle, text: category"></span>
-          <i class="fa fa-flask" title="Development" data-sbind="visible: is_development()"></i>
+          <i class="fa fa-flask" title="Development" data-sbind="visible: is_development()" aria-hidden="true"></i>
         </div>
       </div>
       <div class="item-actions table-row-badges">
@@ -143,15 +143,15 @@
         <span class="badge profile-badge" data-sbind="text: name, css: colorClass, attr:{style: badgeStyle, title: title}"></span>
         <!-- /ko -->
       </div>
-      <button type="button" class="table-row-chevron" title="Show extension actions" data-sbind="click: toggleTableRowAction, clickBubble: false, css:{expanded: rowExpanded}">
-        <i class="fa fa-chevron-left"></i>
+      <button type="button" class="table-row-chevron" title="Show extension actions" aria-label="Show extension actions" data-sbind="click: toggleTableRowAction, clickBubble: false, css:{expanded: rowExpanded}">
+        <i class="fa fa-chevron-left" aria-hidden="true"></i>
       </button>
     </div>
     <div class="table-action-line" data-sbind="visible: rowExpanded">
       <div class="action-controls-row">
         <div class="action-icon-row">
-          <button type="button" class="action-icon-button" title="Toggle enable/disable" data-sbind="click: toggleCompactAction, clickBubble: false">
-            <i class="fa" data-sbind="css: toggleIconClass"></i>
+          <button type="button" class="action-icon-button" title="Toggle enable/disable" aria-label="Toggle enable/disable" data-sbind="click: toggleCompactAction, clickBubble: false">
+            <i class="fa" data-sbind="css: toggleIconClass" aria-hidden="true"></i>
           </button>
           <button type="button" class="action-icon-button" title="Extension options" aria-label="Extension options" data-sbind="visible: optionsUrl(), click: launchOptionsAction, clickBubble: false"><i class="fa fa-cog" aria-hidden="true"></i></button>
           <button type="button" class="action-icon-button" title="Manage extension" aria-label="Manage extension" data-sbind="click: openManageAction, clickBubble: false"><i class="fa fa-puzzle-piece" aria-hidden="true"></i></button>
@@ -178,7 +178,7 @@
         <div class="compact-row-title">
           <span class="name" data-sbind="text: short_name, click: toggleCompactAction, clickBubble: false"></span>
           <span class="version-chip" data-sbind="visible: showVersionChip, text: version"></span>
-          <i class="fa fa-flask" title="Development" data-sbind="visible: is_development()"></i>
+          <i class="fa fa-flask" title="Development" data-sbind="visible: is_development()" aria-hidden="true"></i>
         </div>
       </div>
       <div class="compact-row-side">
@@ -187,16 +187,16 @@
           <span class="badge profile-badge" data-sbind="text: name, css: colorClass, attr:{style: badgeStyle, title: title}"></span>
           <!-- /ko -->
         </div>
-        <button type="button" class="compact-row-chevron" title="Show extension actions" data-sbind="click: toggleCompactRowAction, clickBubble: false, css:{expanded: rowExpanded}">
-          <i class="fa fa-chevron-down"></i>
+        <button type="button" class="compact-row-chevron" title="Show extension actions" aria-label="Show extension actions" data-sbind="click: toggleCompactRowAction, clickBubble: false, css:{expanded: rowExpanded}">
+          <i class="fa fa-chevron-down" aria-hidden="true"></i>
         </button>
       </div>
     </div>
     <div class="compact-action-line" data-sbind="visible: rowExpanded">
       <div class="action-controls-row">
         <div class="action-icon-row">
-          <button type="button" class="action-icon-button" title="Toggle enable/disable" data-sbind="click: toggleCompactAction, clickBubble: false">
-            <i class="fa" data-sbind="css: toggleIconClass"></i>
+          <button type="button" class="action-icon-button" title="Toggle enable/disable" aria-label="Toggle enable/disable" data-sbind="click: toggleCompactAction, clickBubble: false">
+            <i class="fa" data-sbind="css: toggleIconClass" aria-hidden="true"></i>
           </button>
           <button type="button" class="action-icon-button" title="Extension options" aria-label="Extension options" data-sbind="visible: optionsUrl(), click: launchOptionsAction, clickBubble: false"><i class="fa fa-cog" aria-hidden="true"></i></button>
           <button type="button" class="action-icon-button" title="Manage extension" aria-label="Manage extension" data-sbind="click: openManageAction, clickBubble: false"><i class="fa fa-puzzle-piece" aria-hidden="true"></i></button>
@@ -224,8 +224,8 @@
       </div>
     </div>
     <div class="item-actions">
-      <i class="fa fa-flask" title="Development" data-sbind="visible: is_development()"></i>
-      <i class="fa fa-gear" title="Options" data-sbind="visible: showOptionsButton, click: launchOptionsAction, clickBubble: false"></i>
+      <i class="fa fa-flask" title="Development" data-sbind="visible: is_development()" aria-hidden="true"></i>
+      <i class="fa fa-gear" title="Options" data-sbind="visible: showOptionsButton, click: launchOptionsAction, clickBubble: false" aria-hidden="true"></i>
     </div>
   </li>
   <!-- /ko -->
