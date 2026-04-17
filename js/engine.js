@@ -211,12 +211,18 @@
   }
 
   function firstDescriptionLine(value) {
-    return String(value || "")
-      .split(/\r?\n/)
-      .map(function(line) {
-        return line.trim();
-      })
-      .filter(Boolean)[0] || "";
+    // Performance optimization: Replaced chained `.map().filter()[0]` with a `for` loop
+    // to prevent intermediate array allocations and allow early return.
+    // This reduces execution time and garbage collection overhead, especially
+    // for extensions with long multiline descriptions.
+    var lines = String(value || "").split(/\r?\n/);
+    for (var i = 0; i < lines.length; i++) {
+      var trimmed = lines[i].trim();
+      if (trimmed) {
+        return trimmed;
+      }
+    }
+    return "";
   }
 
   function isChromeWebStoreUrl(value) {
