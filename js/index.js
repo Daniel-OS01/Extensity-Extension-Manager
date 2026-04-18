@@ -53,44 +53,37 @@ document.addEventListener("DOMContentLoaded", function() {
     self.q = ko.observable("");
 
     self.matchesExtension = function(extension, queryOverride) {
+      // ⚡ Bolt Performance Optimization:
+      // Accepts an optional queryOverride to prevent redundant evaluation
+      // of the self.q() observable during large list iterations.
       var query = typeof queryOverride !== "undefined" ? queryOverride : (self.q() || "").trim().toLowerCase();
       if (!query) {
         return true;
       }
 
-      var sources = [
+      var haystacks = [
         extension.alias(),
         extension.name(),
         extension.description()
-      ];
+      ].filter(Boolean).map(function(item) {
+        return item.toLowerCase();
+      });
 
-      var haystacks = [];
-      for (var i = 0; i < sources.length; i++) {
-        var item = sources[i];
-        if (item) {
-          haystacks.push(item.toLowerCase());
-        }
-      }
-
-      for (var j = 0; j < haystacks.length; j++) {
-        if (haystacks[j].indexOf(query) !== -1) {
-          return true;
-        }
+      if (haystacks.some(function(item) {
+        return item.indexOf(query) !== -1;
+      })) {
+        return true;
       }
 
       if (query.length < 3) {
         return false;
       }
 
-      for (var k = 0; k < haystacks.length; k++) {
-        var words = haystacks[k].split(/\s+/);
-        for (var w = 0; w < words.length; w++) {
-          if (levenshteinWithin(words[w], query, 2)) {
-            return true;
-          }
-        }
-      }
-      return false;
+      return haystacks.some(function(item) {
+        return item.split(/\s+/).some(function(word) {
+          return levenshteinWithin(word, query, 2);
+        });
+      });
     };
   }
 
@@ -837,6 +830,9 @@ document.addEventListener("DOMContentLoaded", function() {
     };
 
     self.listedExtensions = ko.computed(function() {
+      // ⚡ Bolt Performance Optimization:
+      // Cache `q` observable and list observable outside the filter loop
+      // to reduce evaluation overhead and observable tracking costs.
       var query = (self.search.q() || "").trim().toLowerCase();
       var extensions = self.exts.extensions();
       return self.sortExtensions(extensions.filter(function(extension) {
