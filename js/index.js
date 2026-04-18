@@ -52,35 +52,45 @@ document.addEventListener("DOMContentLoaded", function() {
     var self = this;
     self.q = ko.observable("");
 
-    self.matchesExtension = function(extension) {
-      var query = (self.q() || "").trim().toLowerCase();
+    self.matchesExtension = function(extension, queryOverride) {
+      var query = typeof queryOverride !== "undefined" ? queryOverride : (self.q() || "").trim().toLowerCase();
       if (!query) {
         return true;
       }
 
-      var haystacks = [
+      var sources = [
         extension.alias(),
         extension.name(),
         extension.description()
-      ].filter(Boolean).map(function(item) {
-        return item.toLowerCase();
-      });
+      ];
 
-      if (haystacks.some(function(item) {
-        return item.indexOf(query) !== -1;
-      })) {
-        return true;
+      var haystacks = [];
+      for (var i = 0; i < sources.length; i++) {
+        var item = sources[i];
+        if (item) {
+          haystacks.push(item.toLowerCase());
+        }
+      }
+
+      for (var j = 0; j < haystacks.length; j++) {
+        if (haystacks[j].indexOf(query) !== -1) {
+          return true;
+        }
       }
 
       if (query.length < 3) {
         return false;
       }
 
-      return haystacks.some(function(item) {
-        return item.split(/\s+/).some(function(word) {
-          return levenshteinWithin(word, query, 2);
-        });
-      });
+      for (var k = 0; k < haystacks.length; k++) {
+        var words = haystacks[k].split(/\s+/);
+        for (var w = 0; w < words.length; w++) {
+          if (levenshteinWithin(words[w], query, 2)) {
+            return true;
+          }
+        }
+      }
+      return false;
     };
   }
 
@@ -827,34 +837,43 @@ document.addEventListener("DOMContentLoaded", function() {
     };
 
     self.listedExtensions = ko.computed(function() {
-      return self.sortExtensions(self.exts.extensions().filter(function(extension) {
-        return self.search.matchesExtension(extension);
+      var query = (self.search.q() || "").trim().toLowerCase();
+      var extensions = self.exts.extensions();
+      return self.sortExtensions(extensions.filter(function(extension) {
+        return self.search.matchesExtension(extension, query);
       }));
     }).extend({ countable: null });
 
     self.listedApps = ko.computed(function() {
-      return self.exts.apps().filter(function(app) {
-        return self.search.matchesExtension(app);
+      var query = (self.search.q() || "").trim().toLowerCase();
+      var apps = self.exts.apps();
+      return apps.filter(function(app) {
+        return self.search.matchesExtension(app, query);
       }).sort(function(left, right) {
         return left.displayName().toUpperCase().localeCompare(right.displayName().toUpperCase());
       });
     }).extend({ countable: null });
 
     self.listedItems = ko.computed(function() {
-      return self.exts.items().filter(function(item) {
-        return self.search.matchesExtension(item);
+      var query = (self.search.q() || "").trim().toLowerCase();
+      var items = self.exts.items();
+      return items.filter(function(item) {
+        return self.search.matchesExtension(item, query);
       }).sort(function(left, right) {
         return left.displayName().toUpperCase().localeCompare(right.displayName().toUpperCase());
       });
     }).extend({ countable: null });
 
     self.listedProfiles = ko.computed(function() {
-      return self.profiles.items().filter(self.filterProfile);
+      var profiles = self.profiles.items();
+      return profiles.filter(self.filterProfile);
     }).extend({ countable: null });
 
     self.listedFavorites = ko.computed(function() {
-      return self.sortExtensions(self.exts.extensions().filter(function(extension) {
-        return extension.favorite() && self.search.matchesExtension(extension);
+      var query = (self.search.q() || "").trim().toLowerCase();
+      var extensions = self.exts.extensions();
+      return self.sortExtensions(extensions.filter(function(extension) {
+        return extension.favorite() && self.search.matchesExtension(extension, query);
       }));
     }).extend({ countable: null });
 
