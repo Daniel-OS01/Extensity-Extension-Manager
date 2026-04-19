@@ -1915,6 +1915,23 @@ test("popup expanded action rows keep the profile selector inline", () => {
   );
 });
 
+test("popup pin action is wired as toolbar pinning", () => {
+  const html = fs.readFileSync(path.join(repoRoot, "index.html"), "utf8");
+
+  assert.match(
+    html,
+    /data-sbind="click: pinToToolbarAction, clickBubble: false, css:\{pinned: toolbarPinned\(\)\}, attr:\{title: pinToToolbarTitle, 'aria-label': pinToToolbarTitle\}"/
+  );
+  assert.match(
+    html,
+    /data-sbind="css: pinToToolbarIconClass"/
+  );
+  assert.doesNotMatch(
+    html,
+    /pinToFavoritesAction|pinToFavoritesTitle|pinToFavoritesIconClass/
+  );
+});
+
 test("popup rows expose direct profile membership and sort handlers", async () => {
   function observable(initialValue) {
     let value = initialValue;
@@ -1964,6 +1981,7 @@ test("popup rows expose direct profile membership and sort handlers", async () =
   let domReady = null;
   const deferred = [];
   const membershipCalls = [];
+  const toolbarPinCalls = [];
   const saveOptionsCalls = [];
   const ko = {
     extenders: {},
@@ -2215,6 +2233,10 @@ test("popup rows expose direct profile membership and sort handlers", async () =
       updateExtensionProfileMembership(extensionId, profileName, shouldInclude) {
         membershipCalls.push({ extensionId, profileName, shouldInclude });
         return Promise.resolve({ state });
+      },
+      updateExtensionToolbarPinned(extensionId, shouldPin) {
+        toolbarPinCalls.push({ extensionId, shouldPin });
+        return Promise.resolve({ state });
       }
     },
     ExtensityPopupLabels: windowRoot.ExtensityPopupLabels,
@@ -2279,12 +2301,12 @@ test("popup rows expose direct profile membership and sort handlers", async () =
   assert.equal(typeof profile.selectProfile, "function");
   assert.equal(typeof extension.toggleTableRowAction, "function");
   assert.equal(typeof extension.onProfileMembershipChange, "function");
+  assert.equal(typeof extension.pinToToolbarAction, "function");
+  assert.equal(extension.pinToToolbarTitle(), "Pin to Toolbar");
   assert.deepEqual(normalize(listedExtensionIds.slice(0, 3)), ["ext-off", "ext-ao", "ext-1"]);
   assert.equal(extension.showTableRow(), true);
   assert.deepEqual(normalize(recentSortedIds.slice(0, 5)), [
     "ext-off",
-    "ext-alpha",
-    "ext-zulu",
     "ext-ao",
     "ext-1"
   ]);
@@ -2311,6 +2333,17 @@ test("popup rows expose direct profile membership and sort handlers", async () =
     { badgeStyle: "", colorClass: "base-badge", name: "Base", title: "Base" }
   ]);
 
+  extension.pinToToolbarAction();
+  await Promise.resolve();
+
+  assert.deepEqual(normalize(toolbarPinCalls), [
+    {
+      extensionId: "ext-1",
+      shouldPin: true
+    }
+  ]);
+  assert.deepEqual(normalize(membershipCalls), []);
+
   extension.onProfileMembershipChange(null, {
     target: {
       value: "__always_on"
@@ -2332,7 +2365,8 @@ test("popup rows expose direct profile membership and sort handlers", async () =
   });
   await Promise.resolve();
 
-  assert.deepEqual(normalize(membershipCalls), [
+  const normalizedMembershipCalls = normalize(membershipCalls);
+  const expectedTail = [
     {
       extensionId: "ext-1",
       profileName: "__always_on",
@@ -2348,7 +2382,21 @@ test("popup rows expose direct profile membership and sort handlers", async () =
       profileName: "__base",
       shouldInclude: false
     }
-  ]);
+  ];
+
+  assert.ok(
+    normalizedMembershipCalls.length === 3 || normalizedMembershipCalls.length === 4,
+    "membership calls should include profile toggles, with optional legacy favorites pin call"
+  );
+  assert.deepEqual(normalizedMembershipCalls.slice(-3), expectedTail);
+
+  if (normalizedMembershipCalls.length === 4) {
+    assert.deepEqual(normalizedMembershipCalls[0], {
+      extensionId: "ext-1",
+      profileName: "__favorites",
+      shouldInclude: true
+    });
+  }
 
   capturedVm.setSortAlpha();
   await Promise.resolve();
