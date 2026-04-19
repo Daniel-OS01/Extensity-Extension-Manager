@@ -809,20 +809,36 @@ document.addEventListener("DOMContentLoaded", function() {
     };
 
     self.sortExtensions = function(items) {
+      function compareByName(left, right) {
+        var leftName = left.displayName().toUpperCase();
+        var rightName = right.displayName().toUpperCase();
+        var nameCompare = leftName.localeCompare(rightName);
+        if (nameCompare !== 0) {
+          return nameCompare;
+        }
+        return left.id().localeCompare(right.id());
+      }
+
       return items.slice().sort(function(left, right) {
-        if (self.opts.enabledFirst() && left.status() !== right.status()) {
+        var sortMode = self.opts.sortMode();
+        var leftUsageCount = Number(left.usageCount()) || 0;
+        var rightUsageCount = Number(right.usageCount()) || 0;
+        var leftLastUsed = Number(left.lastUsed()) || 0;
+        var rightLastUsed = Number(right.lastUsed()) || 0;
+
+        if (sortMode === "frequency" && leftUsageCount !== rightUsageCount) {
+          return rightUsageCount - leftUsageCount;
+        }
+
+        if (sortMode === "recent" && leftLastUsed !== rightLastUsed) {
+          return rightLastUsed - leftLastUsed;
+        }
+
+        if (self.opts.enabledFirst() && sortMode !== "recent" && left.status() !== right.status()) {
           return left.status() ? -1 : 1;
         }
 
-        if (self.opts.sortMode() === "frequency" && left.usageCount() !== right.usageCount()) {
-          return right.usageCount() - left.usageCount();
-        }
-
-        if (self.opts.sortMode() === "recent" && left.lastUsed() !== right.lastUsed()) {
-          return right.lastUsed() - left.lastUsed();
-        }
-
-        return left.displayName().toUpperCase().localeCompare(right.displayName().toUpperCase());
+        return compareByName(left, right);
       });
     };
 
