@@ -208,13 +208,18 @@ document.addEventListener("DOMContentLoaded", function() {
       self.profileCountMap(countMap);
 
       var membershipMap = self.extensionProfileMembership();
+      // Performance optimization: Cache Knockout.js observables outside the loop
+      // and consolidate multiple array transformations into a single pass.
+      var profileItems = self.profiles.items();
       self.ext.extensions().forEach(function(extension) {
         var memberProfiles = membershipMap[extension.id()] || {};
-        var badges = self.profiles.items().filter(function(profile) {
-          return !!memberProfiles[profile.name()];
-        }).map(function(profile) {
-          return { name: profile.short_name(), color: profile.color(), iconClass: profile.icon() };
-        });
+        var badges = [];
+        for (var i = 0; i < profileItems.length; i++) {
+          var profile = profileItems[i];
+          if (memberProfiles[profile.name()]) {
+            badges.push({ name: profile.short_name(), color: profile.color(), iconClass: profile.icon() });
+          }
+        }
         extension.profileBadges(badges);
       });
       document.body.className = self.bodyClass();
