@@ -378,12 +378,18 @@ document.addEventListener("DOMContentLoaded", function() {
       item.removeAction = function() {
         return self.removeExtension(item);
       };
-      item.openPinToToolbarAction = function() {
-        return self.openPinToToolbarPage(item);
+      item.pinToFavoritesAction = function() {
+        return self.toggleFavoritePinned(item);
       };
       item.launchOptionsAction = function() {
         return self.launchOptions(item);
       };
+      item.pinToFavoritesTitle = ko.pureComputed(function() {
+        return item.favorite() ? "Unpin from Favorites" : "Pin to Favorites";
+      });
+      item.pinToFavoritesIconClass = ko.pureComputed(function() {
+        return "fa-thumb-tack";
+      });
       item.showOptionsButton = ko.pureComputed(function() {
         return self.opts.showOptions() && !!item.optionsUrl() && !item.disabled();
       });
@@ -695,8 +701,16 @@ document.addEventListener("DOMContentLoaded", function() {
       return false;
     };
 
-    self.openPinToToolbarPage = function(extension) {
-      return self.openManagePage(extension);
+    self.toggleFavoritePinned = function(extension) {
+      if (extension.isApp && extension.isApp()) {
+        return false;
+      }
+      self.performAction(ExtensityApi.updateExtensionProfileMembership(
+        extension.id(),
+        "__favorites",
+        !extension.favorite()
+      ));
+      return false;
     };
 
     self.extensionMembershipButtonLabel = function(extension, profile) {
@@ -817,16 +831,18 @@ document.addEventListener("DOMContentLoaded", function() {
 
     self.sortExtensions = function(items) {
       return items.slice().sort(function(left, right) {
-        if (self.opts.enabledFirst() && left.status() !== right.status()) {
-          return left.status() ? -1 : 1;
-        }
+        var sortMode = self.opts.sortMode();
 
-        if (self.opts.sortMode() === "frequency" && left.usageCount() !== right.usageCount()) {
+        if (sortMode === "frequency" && left.usageCount() !== right.usageCount()) {
           return right.usageCount() - left.usageCount();
         }
 
-        if (self.opts.sortMode() === "recent" && left.lastUsed() !== right.lastUsed()) {
+        if (sortMode === "recent" && left.lastUsed() !== right.lastUsed()) {
           return right.lastUsed() - left.lastUsed();
+        }
+
+        if (self.opts.enabledFirst() && sortMode !== "recent" && left.status() !== right.status()) {
+          return left.status() ? -1 : 1;
         }
 
         return left.displayName().toUpperCase().localeCompare(right.displayName().toUpperCase());
