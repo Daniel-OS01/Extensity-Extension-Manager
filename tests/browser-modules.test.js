@@ -2078,6 +2078,147 @@ test("normalizePopupTextMode returns compact/icons_only or defaults to full", as
   assert.equal(appliedOptions.popupProfilePillTextMode, "full");
 });
 
+test("options page normalizes activeProfile against loaded profiles and saves None as null", async () => {
+  function observable(initialValue) {
+    let value = initialValue;
+    const obs = function(nextValue) {
+      if (arguments.length > 0) {
+        value = nextValue;
+        return obs;
+      }
+      return value;
+    };
+    return obs;
+  }
+
+  let domReady = null;
+  let capturedVm = null;
+  const savedPayloads = [];
+  let appliedOptions = null;
+  const profiles = [
+    { name: "__favorites" },
+    { name: "Work" }
+  ];
+
+  function OptionsCollection() {
+    this.activeProfile = observable(null);
+    this.lastDriveSync = observable(null);
+    this.localProfiles = observable(false);
+    this.apply = function(opts) {
+      appliedOptions = opts;
+      this.activeProfile(opts.activeProfile);
+      this.lastDriveSync(opts.lastDriveSync);
+      this.localProfiles(opts.localProfiles);
+    };
+    this.toJS = function() {
+      return {
+        activeProfile: this.activeProfile(),
+        lastDriveSync: this.lastDriveSync(),
+        localProfiles: this.localProfiles()
+      };
+    };
+  }
+
+  loadBrowserScript(path.join(repoRoot, "js/options.js"), {
+    OptionsCollection,
+    ExtensityApi: {
+      getState() {
+        return Promise.resolve({
+          state: {
+            options: {},
+            profiles: { items: profiles }
+          }
+        });
+      },
+      saveOptions(payload) {
+        savedPayloads.push(normalize(payload));
+        return Promise.resolve({
+          state: {
+            options: payload,
+            profiles: { items: profiles }
+          }
+        });
+      }
+    },
+    ExtensityIO: {
+      exportFilename() { return ""; },
+      readFileAsText() { return Promise.resolve(""); },
+      downloadText() {}
+    },
+    ExtensityImportExport: {
+      buildExtensionsCsv() { return ""; }
+    },
+    ExtensityUtils: {
+      applyThemeClasses() {}
+    },
+    fadeOutMessage() {},
+    ko: {
+      observable,
+      pureComputed(fn) {
+        return fn;
+      },
+      bindingProvider: {},
+      secureBindingsProvider: function() {},
+      applyBindings(vm) {
+        capturedVm = vm;
+      }
+    },
+    _: { defer(fn) { fn(); } },
+    document: {
+      addEventListener(event, cb) { if (event === "DOMContentLoaded") { domReady = cb; } },
+      body: { style: {} },
+      documentElement: { style: { setProperty() {} } },
+      getElementById() { return {}; }
+    },
+    chrome: {
+      permissions: {
+        contains(descriptor, callback) { callback(true); }
+      },
+      tabs: {
+        create() {}
+      }
+    },
+    window: {}
+  });
+
+  domReady();
+
+  capturedVm.applyState({
+    options: {
+      activeProfile: "Work",
+      lastDriveSync: 1700000000000,
+      localProfiles: true
+    },
+    profiles: { items: profiles }
+  });
+  assert.equal(appliedOptions.activeProfile, "Work");
+  assert.deepEqual(normalize(capturedVm.activeProfileOptions()), [
+    { label: "None", value: null },
+    { label: "Favorites", value: "__favorites" },
+    { label: "Work", value: "Work" }
+  ]);
+  assert.equal(capturedVm.localProfilesLabel(), "Local storage");
+
+  capturedVm.applyState({
+    options: {
+      activeProfile: "Missing",
+      lastDriveSync: null,
+      localProfiles: false
+    },
+    profiles: { items: profiles }
+  });
+  assert.equal(appliedOptions.activeProfile, null);
+  assert.equal(capturedVm.localProfilesLabel(), "Chrome sync storage");
+
+  capturedVm.options.activeProfile(null);
+  await capturedVm.save();
+
+  assert.equal(savedPayloads.length, 1);
+  assert.equal(savedPayloads[0].activeProfile, null);
+  assert.equal(savedPayloads[0].localProfiles, false);
+  assert.equal(savedPayloads[0].lastDriveSync, null);
+});
+
 test("popup template avoids secure-binding context variables", () => {
   const html = fs.readFileSync(path.join(repoRoot, "index.html"), "utf8");
   const templateStart = html.indexOf('<script type="text/html" id="item-template">');
@@ -2191,6 +2332,31 @@ test("popup recent label and pin action reflect browser toolbar settings", () =>
   assert.doesNotMatch(
     html,
     /pinToFavoritesAction|pinToFavoritesTitle|pinToFavoritesIconClass/
+  );
+});
+
+test("options page exposes active profile and debug status without unsafe sync internals", () => {
+  const html = fs.readFileSync(path.join(repoRoot, "options.html"), "utf8");
+
+  assert.match(
+    html,
+    /<legend>Advanced &amp; Debug<\/legend>/
+  );
+  assert.match(
+    html,
+    /<select id="activeProfile" data-sbind="options: activeProfileOptions, optionsText: 'label', optionsValue: 'value', value: options.activeProfile"><\/select>/
+  );
+  assert.match(
+    html,
+    /<span class="muted">Profile storage:<\/span> <span data-sbind="text: localProfilesLabel"><\/span>/
+  );
+  assert.match(
+    html,
+    /<span class="muted">Last Drive sync:<\/span> <span data-sbind="text: lastDriveSyncLabel"><\/span>/
+  );
+  assert.doesNotMatch(
+    html,
+    /id="migration"|id="migration_2_0_0"|id="migration_popupListStyle"|id="profileMeta"/
   );
 });
 
@@ -2337,7 +2503,7 @@ test("popup rows expose direct profile membership and sort handlers", async () =
       items: [
         { items: ["ext-ao"], name: "__always_on" },
         { items: ["ext-1", "ext-ao"], name: "__base" },
-        { items: ["ext-1"], name: "__favorites" },
+        { items: ["ext-1", "ext-fav-off"], name: "__favorites" },
         { color: "#ff0000", icon: "fa-rocket", items: ["ext-1", "ext-ao"], name: "Work" },
         { color: "#00aa00", icon: "fa-bolt", items: ["ext-1"], name: "Focus" },
         { color: "#0000ff", icon: "fa-globe", items: ["ext-1"], name: "Travel" },
@@ -2404,13 +2570,14 @@ test("popup rows expose direct profile membership and sort handlers", async () =
         name: "Zeta Tie Extension",
         optionsUrl: "",
         storeUrl: "https://chrome.google.com/webstore/detail/example/ext-zeta",
-        usageCount: 1,
+        usageCount: 3,
         version: "1.0.2"
       },
       {
         alias: "",
         description: "Example extension description",
         enabled: true,
+        favorite: true,
         groupBadges: [],
         groupIds: [],
         homepageUrl: "https://example.com",
@@ -2426,6 +2593,27 @@ test("popup rows expose direct profile membership and sort handlers", async () =
         storeUrl: "https://chrome.google.com/webstore/detail/example/ext-1",
         usageCount: 2,
         version: "1.2.3"
+      },
+      {
+        alias: "",
+        description: "Favorite disabled extension description",
+        enabled: false,
+        favorite: true,
+        groupBadges: [],
+        groupIds: [],
+        homepageUrl: "https://example.com/favorite-disabled",
+        icon: "images/icon48.png",
+        id: "ext-fav-off",
+        installedAt: 600,
+        installType: "normal",
+        isApp: false,
+        lastUsed: 50,
+        mayDisable: true,
+        name: "Favorite Disabled Extension",
+        optionsUrl: "",
+        storeUrl: "https://chrome.google.com/webstore/detail/example/ext-fav-off",
+        usageCount: 10,
+        version: "0.5.0"
       },
       {
         alias: "",
@@ -2612,20 +2800,22 @@ test("popup rows expose direct profile membership and sort handlers", async () =
   assert.equal(typeof extension.onProfileMembershipChange, "function");
   assert.equal(typeof extension.pinToToolbarAction, "function");
   assert.equal(extension.pinToToolbarTitle(), "Pin to browser toolbar");
-  assert.deepEqual(normalize(listedExtensionIds.slice(0, 5)), ["ext-ao", "ext-alpha", "ext-zeta", "ext-1", "ext-off"]);
+  assert.deepEqual(normalize(listedExtensionIds.slice(0, 6)), ["ext-ao", "ext-alpha", "ext-zeta", "ext-1", "ext-fav-off", "ext-off"]);
   assert.equal(extension.showTableRow(), true);
-  assert.deepEqual(normalize(recentSortedIds.slice(0, 5)), [
+  assert.deepEqual(normalize(recentSortedIds.slice(0, 6)), [
     "ext-ao",
     "ext-alpha",
     "ext-zeta",
     "ext-1",
+    "ext-fav-off",
     "ext-off"
   ]);
-  assert.deepEqual(normalize(capturedVm.listedItems().map((item) => item.id()).slice(0, 5)), [
+  assert.deepEqual(normalize(capturedVm.listedItems().map((item) => item.id()).slice(0, 6)), [
     "ext-ao",
     "ext-alpha",
     "ext-zeta",
     "ext-1",
+    "ext-fav-off",
     "ext-off"
   ]);
   assert.deepEqual(normalize(profileNames), ["__always_on", "__base", "__favorites", "Work", "Focus", "Travel", "Home"]);
@@ -2711,5 +2901,26 @@ test("popup rows expose direct profile membership and sort handlers", async () =
   capturedVm.setSortAlpha();
   await Promise.resolve();
 
-  assert.deepEqual(normalize(saveOptionsCalls), ["alpha"]);
+  assert.deepEqual(normalize(capturedVm.listedExtensions().map((item) => item.id()).slice(0, 6)), [
+    "ext-alpha",
+    "ext-ao",
+    "ext-zeta",
+    "ext-1",
+    "ext-fav-off",
+    "ext-off"
+  ]);
+
+  capturedVm.setSortFrequency();
+  await Promise.resolve();
+
+  assert.deepEqual(normalize(capturedVm.listedExtensions().map((item) => item.id()).slice(0, 6)), [
+    "ext-ao",
+    "ext-zeta",
+    "ext-alpha",
+    "ext-1",
+    "ext-fav-off",
+    "ext-off"
+  ]);
+
+  assert.deepEqual(normalize(saveOptionsCalls), ["alpha", "frequency"]);
 });

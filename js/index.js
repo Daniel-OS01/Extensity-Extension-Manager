@@ -847,10 +847,14 @@ document.addEventListener("DOMContentLoaded", function() {
         return left.id().localeCompare(right.id());
       }
 
-      function compareByRecent(left, right) {
-        if (left.status() !== right.status()) {
-          return left.status() ? -1 : 1;
+      function compareByFrequency(left, right) {
+        if (left.usageCount() !== right.usageCount()) {
+          return right.usageCount() - left.usageCount();
         }
+        return compareByName(left, right);
+      }
+
+      function compareByRecent(left, right) {
         if (left.installedAt() !== right.installedAt()) {
           return right.installedAt() - left.installedAt();
         }
@@ -860,19 +864,37 @@ document.addEventListener("DOMContentLoaded", function() {
         return compareByName(left, right);
       }
 
+      function favoriteBucketRank(item) {
+        var favorite = typeof item.favorite === "function" && item.favorite();
+        var enabled = !!item.status();
+
+        if (!favorite && enabled) {
+          return 0;
+        }
+        if (favorite && enabled) {
+          return 1;
+        }
+        if (favorite) {
+          return 2;
+        }
+        return 3;
+      }
+
       return items.slice().sort(function(left, right) {
         var sortMode = self.opts.sortMode();
+        var leftBucket = favoriteBucketRank(left);
+        var rightBucket = favoriteBucketRank(right);
 
-        if (sortMode === "frequency" && left.usageCount() !== right.usageCount()) {
-          return right.usageCount() - left.usageCount();
+        if (leftBucket !== rightBucket) {
+          return leftBucket - rightBucket;
         }
 
         if (sortMode === "recent") {
           return compareByRecent(left, right);
         }
 
-        if (self.opts.enabledFirst() && left.status() !== right.status()) {
-          return left.status() ? -1 : 1;
+        if (sortMode === "frequency") {
+          return compareByFrequency(left, right);
         }
 
         return compareByName(left, right);

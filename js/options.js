@@ -1,12 +1,29 @@
 document.addEventListener("DOMContentLoaded", function() {
+  function createObservableArray(initialValue) {
+    if (ko.observableArray) {
+      return ko.observableArray(initialValue || []);
+    }
+
+    var obs = ko.observable((initialValue || []).slice());
+    obs.push = function(item) {
+      var nextValue = obs().slice();
+      nextValue.push(item);
+      obs(nextValue);
+    };
+    return obs;
+  }
+
   function numericOption(value, fallback) {
     var parsed = typeof value === "number" ? value : parseFloat(value);
     return isFinite(parsed) ? parsed : fallback;
   }
 
+  function normalizeEnum(value, allowed, fallback) {
+    return allowed.indexOf(value) !== -1 ? value : fallback;
+  }
+
   function normalizePopupListStyle(value) {
-    var allowed = ["card", "flat", "compact", "table"];
-    return allowed.indexOf(value) !== -1 ? value : "card";
+    return normalizeEnum(value, ["card", "flat", "compact", "table"], "card");
   }
 
   function normalizeDirection(value) {
@@ -35,15 +52,61 @@ document.addEventListener("DOMContentLoaded", function() {
     return "invisible";
   }
 
-  function normalizeOptionState(options) {
+  function normalizeActiveProfile(value, allowedProfiles) {
+    if (value == null || value === "") {
+      return null;
+    }
+
+    var normalized = String(value).trim();
+    if (!normalized) {
+      return null;
+    }
+
+    if (Array.isArray(allowedProfiles) && allowedProfiles.indexOf(normalized) === -1) {
+      return null;
+    }
+
+    return normalized;
+  }
+
+  function profileOptionLabel(name) {
+    var reserved = {
+      "__always_on": "Always On",
+      "__base": "Base",
+      "__favorites": "Favorites"
+    };
+
+    return reserved[name] || String(name || "");
+  }
+
+  function buildActiveProfileOptions(profileItems) {
+    var items = Array.isArray(profileItems) ? profileItems : [];
+    return [{ label: "None", value: null }].concat(items.filter(function(profile) {
+      return profile && profile.name;
+    }).map(function(profile) {
+      return {
+        label: profileOptionLabel(profile.name),
+        value: profile.name
+      };
+    }));
+  }
+
+  function normalizeOptionState(options, allowedProfiles) {
     var normalized = Object.assign({}, options || {});
+    normalized.activeProfile = normalizeActiveProfile(normalized.activeProfile, allowedProfiles);
+    normalized.colorScheme = normalizeEnum(normalized.colorScheme, ["auto", "light", "dark"], "auto");
+    normalized.contrastMode = normalizeEnum(normalized.contrastMode, ["normal", "high"], "normal");
+    normalized.profileDisplay = normalizeEnum(normalized.profileDisplay, ["landscape", "portrait"], "landscape");
     normalized.popupListStyle = normalizePopupListStyle(normalized.popupListStyle);
+    normalized.sortMode = normalizeEnum(normalized.sortMode, ["alpha", "frequency", "recent"], "recent");
+    normalized.viewMode = normalizeEnum(normalized.viewMode, ["list", "grid"], "list");
     normalized.profileExtensionSide = normalized.profileExtensionSide === "right" ? "right" : "left";
     normalized.profileLayoutDirection = normalizeDirection(normalized.profileLayoutDirection);
     normalized.profileNameDirection = normalizeDirection(normalized.profileNameDirection);
     normalized.popupActionRowLayout = normalized.popupActionRowLayout === "vertical" ? "vertical" : "horizontal";
     normalized.popupHeaderIconSize = normalizePopupHeaderIconSize(normalized.popupHeaderIconSize);
     normalized.popupScrollbarMode = normalizePopupScrollbarMode(normalized.popupScrollbarMode);
+    normalized.localProfiles = normalized.localProfiles === true;
     normalized.popupProfilePillShowIcons = normalized.popupProfilePillShowIcons === true;
     normalized.popupProfilePillTextMode = normalizePopupTextMode(normalized.popupProfilePillTextMode);
     normalized.popupTableActionPanelPosition = normalizePopupPanelPosition(normalized.popupTableActionPanelPosition);
@@ -98,6 +161,12 @@ document.addEventListener("DOMContentLoaded", function() {
   function attachDataMethods(self) {
     self.lastDriveSyncLabel = ko.pureComputed(function() {
       return formatTimestamp(self.options.lastDriveSync());
+    });
+    self.localProfilesLabel = ko.pureComputed(function() {
+      if (self.options.localProfiles && self.options.localProfiles()) {
+        return "Local storage";
+      }
+      return "Chrome sync storage";
     });
     self.exportJson = function() {
       self.performAction(ExtensityApi.exportBackup()).then(function(payload) {
@@ -205,13 +274,21 @@ document.addEventListener("DOMContentLoaded", function() {
     self.message = ko.observable("");
     self.needsWebStorePermission = ko.observable(false);
     self.options = new OptionsCollection();
+    self.activeProfileOptions = createObservableArray([{ label: "None", value: null }]);
 
     attachPermissionMethods(self);
     attachDataMethods(self);
     attachPresetMethods(self);
 
     self.applyState = function(state) {
-      var normalizedOptions = normalizeOptionState(state.options);
+      var profileItems = state && state.profiles && Array.isArray(state.profiles.items)
+        ? state.profiles.items
+        : [];
+      var allowedProfiles = profileItems.length
+        ? profileItems.map(function(profile) { return profile.name; })
+        : null;
+      var normalizedOptions = normalizeOptionState(state.options, allowedProfiles);
+      self.activeProfileOptions(buildActiveProfileOptions(profileItems));
       self.options.apply(normalizedOptions);
       ExtensityUtils.applyThemeClasses(normalizedOptions);
       applyCssVars(normalizedOptions);
@@ -246,7 +323,10 @@ document.addEventListener("DOMContentLoaded", function() {
     };
 
     self.save = function() {
-      var payload = normalizeOptionState(self.options.toJS());
+      var allowedProfiles = self.activeProfileOptions().map(function(option) {
+        return option.value;
+      }).filter(Boolean);
+      var payload = normalizeOptionState(self.options.toJS(), allowedProfiles);
       return self.performAction(ExtensityApi.saveOptions(payload)).then(function() {
         self.message("Saved!");
         fadeOutMessage("save-result");

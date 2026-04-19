@@ -684,6 +684,14 @@ importScripts(
       "    }",
       "    return null;",
       "  }",
+      "  function scrollElementIntoView(target) {",
+      "    if (!target || typeof target.scrollIntoView !== 'function') {",
+      "      return;",
+      "    }",
+      "    try {",
+      "      target.scrollIntoView({ block: 'center', inline: 'center' });",
+      "    } catch (error) {}",
+      "  }",
       "  function readSwitchState(element) {",
       "    if (!element) {",
       "      return null;",
@@ -710,15 +718,30 @@ importScripts(
       "    }",
       "    return null;",
       "  }",
+      "  function elementCenterPoint(target) {",
+      "    if (!target || typeof target.getBoundingClientRect !== 'function') {",
+      "      return null;",
+      "    }",
+      "    scrollElementIntoView(target);",
+      "    var rect = target.getBoundingClientRect();",
+      "    if (!rect) {",
+      "      return null;",
+      "    }",
+      "    var width = typeof rect.width === 'number' ? rect.width : (rect.right - rect.left);",
+      "    var height = typeof rect.height === 'number' ? rect.height : (rect.bottom - rect.top);",
+      "    if (!isFinite(rect.left) || !isFinite(rect.top) || !isFinite(width) || !isFinite(height)) {",
+      "      return null;",
+      "    }",
+      "    return {",
+      "      x: rect.left + (width / 2),",
+      "      y: rect.top + (height / 2)",
+      "    };",
+      "  }",
       "  function clickElement(target) {",
       "    if (!target) {",
       "      return false;",
       "    }",
-      "    if (typeof target.scrollIntoView === 'function') {",
-      "      try {",
-      "        target.scrollIntoView({ block: 'center', inline: 'center' });",
-      "      } catch (error) {}",
-      "    }",
+      "    scrollElementIntoView(target);",
       "    if (typeof target.click === 'function') {",
       "      target.click();",
       "      return true;",
@@ -756,6 +779,8 @@ importScripts(
       "  if (state === null) {",
       "    state = readSwitchState(host);",
       "  }",
+      "  var pointerTarget = control || host;",
+      "  var point = elementCenterPoint(pointerTarget);",
       "  var clicked = false;",
       "  var clickedTarget = '';",
       "  if (host && state === false && " + (shouldClick ? "true" : "false") + ") {",
@@ -774,6 +799,10 @@ importScripts(
       "    controlFound: !!control,",
       "    found: !!host,",
       "    isPinned: state === true,",
+      "    pointerReady: !!point,",
+      "    pointerTarget: point ? (control ? 'control' : 'row') : '',",
+      "    pointerX: point ? point.x : null,",
+      "    pointerY: point ? point.y : null,",
       "    stateKnown: state !== null",
       "  };",
       "})()"
@@ -792,6 +821,45 @@ importScripts(
     }
 
     return response && response.result ? response.result.value : null;
+  }
+
+  async function dispatchDebuggerMouseEvent(target, params) {
+    return chromeCall(chrome.debugger, "sendCommand", [target, "Input.dispatchMouseEvent", params]);
+  }
+
+  async function attemptPointerToolbarPin(target, state) {
+    var x = Number(state && state.pointerX);
+    var y = Number(state && state.pointerY);
+    if (!isFinite(x) || !isFinite(y)) {
+      return false;
+    }
+
+    await dispatchDebuggerMouseEvent(target, {
+      type: "mouseMoved",
+      x: x,
+      y: y,
+      button: "none",
+      buttons: 0
+    });
+    await wait(50);
+    await dispatchDebuggerMouseEvent(target, {
+      type: "mousePressed",
+      x: x,
+      y: y,
+      button: "left",
+      buttons: 1,
+      clickCount: 1
+    });
+    await wait(50);
+    await dispatchDebuggerMouseEvent(target, {
+      type: "mouseReleased",
+      x: x,
+      y: y,
+      button: "left",
+      buttons: 0,
+      clickCount: 1
+    });
+    return true;
   }
 
   async function waitForTabComplete(tabId, timeoutMs) {
@@ -854,6 +922,9 @@ importScripts(
   async function attemptToolbarPinWithDebugger(tabId) {
     var target = { tabId: tabId };
     var attached = false;
+    function isPinnedState(state) {
+      return state && state.found && state.stateKnown && state.isPinned;
+    }
 
     try {
       await chromeCall(chrome.debugger, "attach", [target, "1.3"]);
@@ -881,7 +952,24 @@ importScripts(
         return { result: "already_pinned" };
       }
 
+      if (initialState.pointerReady) {
+        try {
+          await attemptPointerToolbarPin(target, initialState);
+          await wait(150);
+          var pointerState = await waitForToolbarPinState(target, function(state) {
+            return state && state.found && state.stateKnown;
+          }, 1000);
+          if (isPinnedState(pointerState)) {
+            return { result: "pinned" };
+          }
+        } catch (error) {}
+      }
+
       var clickState = await evaluateToolbarPinState(target, true);
+      if (isPinnedState(clickState)) {
+        return { result: "pinned" };
+      }
+
       if (!clickState || !clickState.clicked) {
         return {
           reason: "pin_click_failed",
@@ -889,11 +977,9 @@ importScripts(
         };
       }
 
-      var finalState = await waitForToolbarPinState(target, function(state) {
-        return state && state.found && state.stateKnown && state.isPinned;
-      }, 2000);
+      var finalState = await waitForToolbarPinState(target, isPinnedState, 2000);
 
-      if (finalState && finalState.found && finalState.stateKnown && finalState.isPinned) {
+      if (isPinnedState(finalState)) {
         return { result: "pinned" };
       }
 

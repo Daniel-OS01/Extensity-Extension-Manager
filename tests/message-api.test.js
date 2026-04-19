@@ -162,6 +162,15 @@ test("ExtensityBackground exposes all required exported functions", () => {
   }
 });
 
+test("toolbar pin automation expression supports switch buttons and pointer coordinates", () => {
+  const root = loadBackground();
+  const expression = root.ExtensityBackground.buildToolbarPinAutomationExpression(false);
+
+  assert.match(expression, /button\[role="switch"\]/);
+  assert.match(expression, /pointerReady/);
+  assert.match(expression, /getBoundingClientRect/);
+});
+
 // --- Static contract: message type coverage ---
 
 test("all expected message type strings are handled in background.js handleMessage switch", () => {
@@ -365,7 +374,7 @@ test("management onInstalled stores installFirstSeenAt for new items immediately
   ]);
 });
 
-test("pinExtensionToToolbar clicks the real pin control and closes temporary tabs on success", async () => {
+test("pinExtensionToToolbar attempts pointer input before DOM click fallback and closes temporary tabs on success", async () => {
   const attachCalls = [];
   const commandCalls = [];
   const createdTabs = [];
@@ -384,7 +393,15 @@ test("pinExtensionToToolbar clicks the real pin control and closes temporary tab
           callback();
         },
         sendCommand(target, method, params, callback) {
-          commandCalls.push({ method, target: { ...target } });
+          commandCalls.push({
+            method,
+            params: params ? JSON.parse(JSON.stringify(params)) : null,
+            target: { ...target }
+          });
+          if (method === "Input.dispatchMouseEvent") {
+            callback({});
+            return;
+          }
           if (method !== "Runtime.evaluate") {
             callback({});
             return;
@@ -392,14 +409,50 @@ test("pinExtensionToToolbar clicks the real pin control and closes temporary tab
 
           evaluateCount += 1;
           if (evaluateCount === 1) {
-            callback({ result: { value: { clicked: false, found: true, isPinned: false, stateKnown: true } } });
+            callback({ result: { value: {
+              clicked: false,
+              found: true,
+              isPinned: false,
+              pointerReady: true,
+              pointerX: 120,
+              pointerY: 260,
+              stateKnown: true
+            } } });
             return;
           }
           if (evaluateCount === 2) {
-            callback({ result: { value: { clicked: true, found: true, isPinned: false, stateKnown: true } } });
+            callback({ result: { value: {
+              clicked: false,
+              found: true,
+              isPinned: false,
+              pointerReady: true,
+              pointerX: 120,
+              pointerY: 260,
+              stateKnown: true
+            } } });
             return;
           }
-          callback({ result: { value: { clicked: false, found: true, isPinned: true, stateKnown: true } } });
+          if (evaluateCount === 3) {
+            callback({ result: { value: {
+              clicked: true,
+              found: true,
+              isPinned: false,
+              pointerReady: true,
+              pointerX: 120,
+              pointerY: 260,
+              stateKnown: true
+            } } });
+            return;
+          }
+          callback({ result: { value: {
+            clicked: false,
+            found: true,
+            isPinned: true,
+            pointerReady: true,
+            pointerX: 120,
+            pointerY: 260,
+            stateKnown: true
+          } } });
         }
       },
       tabs: {
@@ -440,8 +493,17 @@ test("pinExtensionToToolbar clicks the real pin control and closes temporary tab
   ]);
   assert.deepEqual(commandCalls.map((entry) => entry.method), [
     "Runtime.evaluate",
+    "Input.dispatchMouseEvent",
+    "Input.dispatchMouseEvent",
+    "Input.dispatchMouseEvent",
+    "Runtime.evaluate",
     "Runtime.evaluate",
     "Runtime.evaluate"
+  ]);
+  assert.deepEqual(commandCalls.slice(1, 4).map((entry) => entry.params.type), [
+    "mouseMoved",
+    "mousePressed",
+    "mouseReleased"
   ]);
   assert.deepEqual(detachedTargets, [{ tabId: 55 }]);
   assert.deepEqual(removedTabs, [55]);
@@ -453,6 +515,7 @@ test("pinExtensionToToolbar clicks the real pin control and closes temporary tab
 });
 
 test("pinExtensionToToolbar skips clicking when the toolbar pin is already enabled", async () => {
+  const commandCalls = [];
   const detachedTargets = [];
   const removedTabs = [];
   let evaluateCount = 0;
@@ -467,6 +530,7 @@ test("pinExtensionToToolbar skips clicking when the toolbar pin is already enabl
           callback();
         },
         sendCommand(target, method, params, callback) {
+          commandCalls.push(method);
           if (method !== "Runtime.evaluate") {
             callback({});
             return;
@@ -499,6 +563,7 @@ test("pinExtensionToToolbar skips clicking when the toolbar pin is already enabl
   const result = await root.ExtensityBackground.pinExtensionToToolbar({ extensionId: "ext-2" });
 
   assert.equal(evaluateCount, 1);
+  assert.deepEqual(commandCalls, ["Runtime.evaluate"]);
   assert.deepEqual(detachedTargets, [{ tabId: 77 }]);
   assert.deepEqual(removedTabs, [77]);
   assert.deepEqual(normalize(result), {

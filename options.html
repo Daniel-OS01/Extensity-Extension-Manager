@@ -150,8 +150,17 @@
         <legend>Cloud Sync</legend>
         <div class="field"><input type="checkbox" id="driveSync" data-sbind="checked: options.driveSync" /><label for="driveSync">Enable Google Drive backup</label></div>
         <div class="field"><span class="muted">Cloud Sync is a future feature and is not implemented in this build yet.</span></div>
-        <div class="field"><span class="muted">Last Drive sync:</span> <span data-sbind="text: lastDriveSyncLabel"></span></div>
         <div class="field action-row"><button type="button" title="Sync your backup to Google Drive now" data-sbind="click: syncDrive">Sync now</button></div>
+      </fieldset>
+
+      <fieldset class="settings-card">
+        <legend>Advanced &amp; Debug</legend>
+        <div class="field">
+          <label for="activeProfile">Active profile</label>
+          <select id="activeProfile" data-sbind="options: activeProfileOptions, optionsText: 'label', optionsValue: 'value', value: options.activeProfile"></select>
+        </div>
+        <div class="field"><span class="muted">Profile storage:</span> <span data-sbind="text: localProfilesLabel"></span></div>
+        <div class="field"><span class="muted">Last Drive sync:</span> <span data-sbind="text: lastDriveSyncLabel"></span></div>
       </fieldset>
     </div>
 
