@@ -378,6 +378,9 @@ document.addEventListener("DOMContentLoaded", function() {
       item.removeAction = function() {
         return self.removeExtension(item);
       };
+      item.openPinToToolbarAction = function() {
+        return self.openPinToToolbarPage(item);
+      };
       item.launchOptionsAction = function() {
         return self.launchOptions(item);
       };
@@ -692,6 +695,10 @@ document.addEventListener("DOMContentLoaded", function() {
       return false;
     };
 
+    self.openPinToToolbarPage = function(extension) {
+      return self.openManagePage(extension);
+    };
+
     self.extensionMembershipButtonLabel = function(extension, profile) {
       return self.isExtensionInProfile(extension, profile.name()) ? "Remove" : "Add";
     };
@@ -810,16 +817,18 @@ document.addEventListener("DOMContentLoaded", function() {
 
     self.sortExtensions = function(items) {
       return items.slice().sort(function(left, right) {
-        if (self.opts.enabledFirst() && left.status() !== right.status()) {
+        var sortMode = self.opts.sortMode();
+
+        if (sortMode === "recent" && left.lastUsed() !== right.lastUsed()) {
+          return right.lastUsed() - left.lastUsed();
+        }
+
+        if (self.opts.enabledFirst() && sortMode !== "recent" && left.status() !== right.status()) {
           return left.status() ? -1 : 1;
         }
 
-        if (self.opts.sortMode() === "frequency" && left.usageCount() !== right.usageCount()) {
+        if (sortMode === "frequency" && left.usageCount() !== right.usageCount()) {
           return right.usageCount() - left.usageCount();
-        }
-
-        if (self.opts.sortMode() === "recent" && left.lastUsed() !== right.lastUsed()) {
-          return right.lastUsed() - left.lastUsed();
         }
 
         return left.displayName().toUpperCase().localeCompare(right.displayName().toUpperCase());

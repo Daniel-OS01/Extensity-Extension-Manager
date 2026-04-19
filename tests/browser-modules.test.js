@@ -2015,7 +2015,7 @@ test("popup rows expose direct profile membership and sort handlers", async () =
       appsFirst: false,
       colorScheme: "auto",
       contrastMode: "normal",
-      enabledFirst: false,
+      enabledFirst: true,
       extensionIconSizePx: 16,
       fontFamily: "",
       fontSizePx: 12,
@@ -2073,6 +2073,7 @@ test("popup rows expose direct profile membership and sort handlers", async () =
         id: "ext-ao",
         installType: "normal",
         isApp: false,
+        lastUsed: 2,
         mayDisable: true,
         name: "Always On Extension",
         optionsUrl: "https://example.com/always-on/options",
@@ -2091,12 +2092,70 @@ test("popup rows expose direct profile membership and sort handlers", async () =
         id: "ext-1",
         installType: "normal",
         isApp: false,
+        lastUsed: 1,
         mayDisable: true,
         name: "Example Extension",
         optionsUrl: "https://example.com/options",
         storeUrl: "https://chrome.google.com/webstore/detail/example/ext-1",
         usageCount: 2,
         version: "1.2.3"
+      },
+      {
+        alias: "",
+        description: "Disabled but recently touched",
+        enabled: false,
+        groupBadges: [],
+        groupIds: [],
+        homepageUrl: "https://example.com/off",
+        icon: "images/icon48.png",
+        id: "ext-off",
+        installType: "normal",
+        isApp: false,
+        lastUsed: 5,
+        mayDisable: true,
+        name: "Off Extension",
+        optionsUrl: "https://example.com/off/options",
+        storeUrl: "https://chrome.google.com/webstore/detail/example/ext-off",
+        usageCount: 1,
+        version: "1.0.0"
+      },
+      {
+        alias: "",
+        description: "Alpha tie-break candidate",
+        enabled: true,
+        groupBadges: [],
+        groupIds: [],
+        homepageUrl: "https://example.com/alpha",
+        icon: "images/icon48.png",
+        id: "ext-alpha",
+        installType: "normal",
+        isApp: false,
+        lastUsed: 3,
+        mayDisable: true,
+        name: "Alpha Extension",
+        optionsUrl: "https://example.com/alpha/options",
+        storeUrl: "https://chrome.google.com/webstore/detail/example/ext-alpha",
+        usageCount: 1,
+        version: "1.0.0"
+      },
+      {
+        alias: "",
+        description: "Zulu tie-break candidate",
+        enabled: true,
+        groupBadges: [],
+        groupIds: [],
+        homepageUrl: "https://example.com/zulu",
+        icon: "images/icon48.png",
+        id: "ext-zulu",
+        installType: "normal",
+        isApp: false,
+        lastUsed: 3,
+        mayDisable: true,
+        name: "Zulu Extension",
+        optionsUrl: "https://example.com/zulu/options",
+        storeUrl: "https://chrome.google.com/webstore/detail/example/ext-zulu",
+        usageCount: 1,
+        version: "1.0.0"
       }
     ],
     localState: {
@@ -2248,6 +2307,7 @@ test("popup rows expose direct profile membership and sort handlers", async () =
   assert.ok(capturedVm);
   const profileNames = capturedVm.listedProfiles().map((profile) => profile.name());
   const profile = capturedVm.listedProfiles()[0];
+  const recentSortedIds = capturedVm.listedExtensions().map((item) => item.id());
   const extension = capturedVm.listedExtensions().find((item) => item.id() === "ext-1");
   const alwaysOnExtension = capturedVm.listedExtensions().find((item) => item.id() === "ext-ao");
 
@@ -2255,6 +2315,13 @@ test("popup rows expose direct profile membership and sort handlers", async () =
   assert.equal(typeof extension.toggleTableRowAction, "function");
   assert.equal(typeof extension.onProfileMembershipChange, "function");
   assert.equal(extension.showTableRow(), true);
+  assert.deepEqual(normalize(recentSortedIds.slice(0, 5)), [
+    "ext-off",
+    "ext-alpha",
+    "ext-zulu",
+    "ext-ao",
+    "ext-1"
+  ]);
   assert.deepEqual(normalize(profileNames), ["__always_on", "__base", "__favorites", "Work", "Focus", "Travel", "Home"]);
   assert.deepEqual(normalize(extension.profileDropdownOptions()), [
     { label: " Always On", value: "__always_on" },

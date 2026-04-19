@@ -44,8 +44,15 @@ function bumpVersion(version, bumpType) {
   return [parsed.major, parsed.minor, parsed.patch].join(".");
 }
 
+function getBumpTypeFromArgv(argv) {
+  const args = (argv || []).filter(function(arg) {
+    return arg !== "--";
+  });
+  return args[0];
+}
+
 function main() {
-  const bumpType = process.argv[2];
+  const bumpType = getBumpTypeFromArgv(process.argv.slice(2));
   if (!allowedBumps.includes(bumpType)) {
     throw new Error(`Expected one of: ${allowedBumps.join(", ")}`);
   }
@@ -73,9 +80,17 @@ function main() {
   process.stdout.write(`${nextVersion}\n`);
 }
 
-try {
-  main();
-} catch (error) {
-  console.error(error.message);
-  process.exit(1);
+if (require.main === module) {
+  try {
+    main();
+  } catch (error) {
+    console.error(error.message);
+    process.exit(1);
+  }
 }
+
+module.exports = {
+  bumpVersion: bumpVersion,
+  getBumpTypeFromArgv: getBumpTypeFromArgv,
+  parseSemver: parseSemver
+};
