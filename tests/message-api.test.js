@@ -24,7 +24,9 @@ const EXPECTED_MESSAGE_TYPES = [
   "SYNC_DRIVE",
   "TOGGLE_ALL",
   "UNDO_LAST",
-  "UNINSTALL_EXTENSION"
+  "UNINSTALL_EXTENSION",
+  "UPDATE_EXTENSION_PROFILE_MEMBERSHIP",
+  "UPDATE_EXTENSION_TOOLBAR_PINNED"
 ];
 
 // Operation context source values attributed to mutations
@@ -189,7 +191,14 @@ function makeRawExt(overrides = {}) {
 
 function makeState() {
   return {
-    localState: { aliases: {}, groups: {}, recentlyUsed: [], usageCounters: {} },
+    localState: {
+      aliases: {},
+      groups: {},
+      installFirstSeenAt: {},
+      recentlyUsed: [],
+      toolbarPins: [],
+      usageCounters: {}
+    },
     profiles: { map: { __always_on: [], __favorites: [] } }
   };
 }
@@ -250,4 +259,24 @@ test("normalizeExtensions marks always-on extensions correctly", () => {
     }
   );
   assert.equal(result[0].alwaysOn, true);
+});
+
+test("normalizeExtensions marks toolbar pinned extensions from local state", () => {
+  const root = loadBackground();
+  const result = root.ExtensityBackground.normalizeExtensions(
+    [makeRawExt({ id: "toolbar-ext" })],
+    {
+      localState: {
+        aliases: {},
+        groups: {},
+        installFirstSeenAt: { "toolbar-ext": 12345 },
+        recentlyUsed: [],
+        toolbarPins: ["toolbar-ext"],
+        usageCounters: {}
+      },
+      profiles: { map: { __always_on: [], __favorites: [] } }
+    }
+  );
+  assert.equal(result[0].toolbarPinned, true);
+  assert.equal(result[0].installedAt, 12345);
 });
