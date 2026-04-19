@@ -2073,6 +2073,7 @@ test("popup rows expose direct profile membership and sort handlers", async () =
         id: "ext-ao",
         installType: "normal",
         isApp: false,
+        lastUsed: 2,
         mayDisable: true,
         name: "Always On Extension",
         optionsUrl: "https://example.com/always-on/options",
@@ -2092,6 +2093,7 @@ test("popup rows expose direct profile membership and sort handlers", async () =
         id: "ext-1",
         installType: "normal",
         isApp: false,
+        lastUsed: 1,
         mayDisable: true,
         name: "Example Extension",
         optionsUrl: "https://example.com/options",
@@ -2269,6 +2271,7 @@ test("popup rows expose direct profile membership and sort handlers", async () =
   assert.ok(capturedVm);
   const profileNames = capturedVm.listedProfiles().map((profile) => profile.name());
   const profile = capturedVm.listedProfiles()[0];
+  const recentSortedIds = capturedVm.listedExtensions().map((item) => item.id());
   const extension = capturedVm.listedExtensions().find((item) => item.id() === "ext-1");
   const alwaysOnExtension = capturedVm.listedExtensions().find((item) => item.id() === "ext-ao");
   const listedExtensionIds = capturedVm.listedExtensions().map((item) => item.id());
@@ -2278,6 +2281,13 @@ test("popup rows expose direct profile membership and sort handlers", async () =
   assert.equal(typeof extension.onProfileMembershipChange, "function");
   assert.deepEqual(normalize(listedExtensionIds.slice(0, 3)), ["ext-off", "ext-ao", "ext-1"]);
   assert.equal(extension.showTableRow(), true);
+  assert.deepEqual(normalize(recentSortedIds.slice(0, 5)), [
+    "ext-off",
+    "ext-alpha",
+    "ext-zulu",
+    "ext-ao",
+    "ext-1"
+  ]);
   assert.deepEqual(normalize(profileNames), ["__always_on", "__base", "__favorites", "Work", "Focus", "Travel", "Home"]);
   assert.deepEqual(normalize(extension.profileDropdownOptions()), [
     { label: " Always On", value: "__always_on" },
