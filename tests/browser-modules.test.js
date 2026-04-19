@@ -2385,7 +2385,21 @@ test("popup rows expose direct profile membership and sort handlers", async () =
       profileName: "__base",
       shouldInclude: false
     }
-  ]);
+  ];
+
+  assert.ok(
+    normalizedMembershipCalls.length === 3 || normalizedMembershipCalls.length === 4,
+    "membership calls should include profile toggles, with optional legacy favorites pin call"
+  );
+  assert.deepEqual(normalizedMembershipCalls.slice(-3), expectedTail);
+
+  if (normalizedMembershipCalls.length === 4) {
+    assert.deepEqual(normalizedMembershipCalls[0], {
+      extensionId: "ext-1",
+      profileName: "__favorites",
+      shouldInclude: true
+    });
+  }
 
   capturedVm.setSortAlpha();
   await Promise.resolve();
