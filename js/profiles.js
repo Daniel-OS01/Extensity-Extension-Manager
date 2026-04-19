@@ -4,7 +4,11 @@ document.addEventListener("DOMContentLoaded", function() {
     var self = this;
 
     function compareExtensionsByName(left, right) {
-      return left.displayName().toUpperCase().localeCompare(right.displayName().toUpperCase());
+      var nameCompare = left.displayName().toUpperCase().localeCompare(right.displayName().toUpperCase());
+      if (nameCompare !== 0) {
+        return nameCompare;
+      }
+      return left.id().localeCompare(right.id());
     }
 
     self.loading = ko.observable(true);
