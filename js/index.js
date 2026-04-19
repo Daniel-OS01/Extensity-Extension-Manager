@@ -830,6 +830,16 @@ document.addEventListener("DOMContentLoaded", function() {
     };
 
     self.sortExtensions = function(items) {
+      function compareByName(left, right) {
+        var leftName = left.displayName().toUpperCase();
+        var rightName = right.displayName().toUpperCase();
+        var nameCompare = leftName.localeCompare(rightName);
+        if (nameCompare !== 0) {
+          return nameCompare;
+        }
+        return left.id().localeCompare(right.id());
+      }
+
       return items.slice().sort(function(left, right) {
         var sortMode = self.opts.sortMode();
 
