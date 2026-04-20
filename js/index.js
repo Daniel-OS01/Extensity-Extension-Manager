@@ -27,12 +27,15 @@ document.addEventListener("DOMContentLoaded", function() {
     }
   }
 
-  function renderPopupChromeFromState(state, viewModel) {
+  function mountPopupHeaderIfEnabled(state, viewModel) {
     var options = state && state.options ? state.options : {};
     var headerTemplateId = options.showHeader === true ? "popup-header-template" : null;
-    var sortTemplateId = options.showPopupSort === true ? "popup-sort-toolbar-template" : "popup-sort-toolbar-error-template";
-
     syncTemplateMount("popup-header-mount", headerTemplateId, viewModel);
+  }
+
+  function mountPopupSortToolbar(state, viewModel) {
+    var options = state && state.options ? state.options : {};
+    var sortTemplateId = options.showPopupSort === true ? "popup-sort-toolbar-template" : "popup-sort-toolbar-error-template";
     syncTemplateMount("popup-sort-toolbar-mount", sortTemplateId, viewModel);
   }
 
@@ -480,7 +483,8 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 
     self.applyState = function(state) {
-      renderPopupChromeFromState(state, self);
+      mountPopupHeaderIfEnabled(state, self);
+      mountPopupSortToolbar(state, self);
       self.opts.apply(state.options);
       self.activeProfile(state.options.activeProfile);
       self.profiles.localProfiles(state.profiles && state.profiles.localProfiles ? true : false);
