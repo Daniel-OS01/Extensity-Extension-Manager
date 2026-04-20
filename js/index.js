@@ -58,29 +58,39 @@ document.addEventListener("DOMContentLoaded", function() {
         return true;
       }
 
-      var haystacks = [
+      var rawValues = [
         extension.alias(),
         extension.name(),
         extension.description()
-      ].filter(Boolean).map(function(item) {
-        return item.toLowerCase();
-      });
+      ];
+      var haystacks = [];
 
-      if (haystacks.some(function(item) {
-        return item.indexOf(query) !== -1;
-      })) {
-        return true;
+      for (var i = 0; i < rawValues.length; i++) {
+        var val = rawValues[i];
+        if (val) {
+          var lower = val.toLowerCase();
+          // Performance: Early return on exact match to skip Levenshtein computation
+          if (lower.indexOf(query) !== -1) {
+            return true;
+          }
+          haystacks.push(lower);
+        }
       }
 
       if (query.length < 3) {
         return false;
       }
 
-      return haystacks.some(function(item) {
-        return item.split(/\s+/).some(function(word) {
-          return levenshteinWithin(word, query, 2);
-        });
-      });
+      for (var i = 0; i < haystacks.length; i++) {
+        var words = haystacks[i].split(/\s+/);
+        for (var j = 0; j < words.length; j++) {
+          if (levenshteinWithin(words[j], query, 2)) {
+            return true;
+          }
+        }
+      }
+
+      return false;
     };
   }
 
