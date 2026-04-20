@@ -1,4 +1,18 @@
 document.addEventListener("DOMContentLoaded", function() {
+  function mountPopupHeaderIfEnabled(state) {
+    if (!state || !state.options || state.options.showHeader !== true) {
+      return;
+    }
+
+    var mountNode = document.getElementById("popup-header-mount");
+    var templateNode = document.getElementById("popup-header-template");
+    if (!mountNode || !templateNode || !templateNode.content) {
+      return;
+    }
+
+    mountNode.appendChild(templateNode.content.cloneNode(true));
+  }
+
   function levenshteinWithin(source, query, limit) {
     var left = source.toLowerCase();
     var right = query.toLowerCase();
@@ -946,7 +960,21 @@ document.addEventListener("DOMContentLoaded", function() {
   _.defer(function() {
     var vm = new ExtensityViewModel();
     ko.bindingProvider.instance = new ko.secureBindingsProvider({});
-    ko.applyBindings(vm, document.body);
-    vm.refresh();
+
+    ExtensityApi.getState().then(function(payload) {
+      var state = payload && payload.state ? payload.state : null;
+      mountPopupHeaderIfEnabled(state);
+      ko.applyBindings(vm, document.body);
+
+      if (state) {
+        vm.applyState(state);
+        return;
+      }
+
+      vm.refresh();
+    }).catch(function() {
+      ko.applyBindings(vm, document.body);
+      vm.refresh();
+    });
   });
 });
