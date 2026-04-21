@@ -1,16 +1,57 @@
 document.addEventListener("DOMContentLoaded", function() {
-  function mountPopupHeaderIfEnabled(state) {
-    if (!state || !state.options || state.options.showHeader !== true) {
+  function normalizePopupState(state) {
+    return state && state.options ? state : null;
+  }
+
+  function syncTemplateMount(mountId, templateId, viewModel) {
+    var mountNode = document.getElementById(mountId);
+    if (!mountNode) {
       return;
     }
 
-    var mountNode = document.getElementById("popup-header-mount");
-    var templateNode = document.getElementById("popup-header-template");
-    if (!mountNode || !templateNode || !templateNode.content) {
+    var currentTemplateId = mountNode.getAttribute("data-template-id") || "";
+    var nextTemplateId = templateId || "";
+    if (currentTemplateId === nextTemplateId) {
+      return;
+    }
+
+    if (!templateId) {
+      mountNode.textContent = "";
+      mountNode.setAttribute("data-template-id", "");
+      return;
+    }
+
+    mountNode.textContent = "";
+    mountNode.setAttribute("data-template-id", nextTemplateId);
+    var templateNode = document.getElementById(templateId);
+    if (!templateNode || !templateNode.content) {
+      mountNode.textContent = "";
+      mountNode.setAttribute("data-template-id", "");
       return;
     }
 
     mountNode.appendChild(templateNode.content.cloneNode(true));
+    if (viewModel && viewModel._popupBindingsReady === true && typeof ko.applyBindingsToDescendants === "function") {
+      ko.applyBindingsToDescendants(viewModel, mountNode);
+    }
+  }
+
+  function mountPopupHeaderIfEnabled(state, viewModel) {
+    var safeState = normalizePopupState(state);
+    var shouldHideHeader = !safeState || safeState.options.showHeader !== true;
+    if (shouldHideHeader || state.options.showHeader !== true) {
+      syncTemplateMount("popup-header-mount", null, viewModel);
+      return;
+    }
+
+    syncTemplateMount("popup-header-mount", "popup-header-template", viewModel);
+  }
+
+  function mountPopupSortToolbar(state, viewModel) {
+    var safeState = normalizePopupState(state);
+    var showPopupSort = safeState && safeState.options.showPopupSort === true;
+    var templateId = showPopupSort ? "popup-sort-toolbar-template" : "popup-sort-toolbar-error-template";
+    syncTemplateMount("popup-sort-toolbar-mount", templateId, viewModel);
   }
 
   function levenshteinWithin(source, query, limit) {
@@ -967,7 +1008,11 @@ document.addEventListener("DOMContentLoaded", function() {
     ExtensityApi.getState().then(function(payload) {
       var state = payload && payload.state ? payload.state : null;
       mountPopupHeaderIfEnabled(state);
+      mountPopupHeaderIfEnabled(state, vm);
+      mountPopupSortToolbar(state);
+      mountPopupSortToolbar(state, vm);
       ko.applyBindings(vm, document.body);
+      vm._popupBindingsReady = true;
 
       if (state) {
         vm.applyState(state);
@@ -976,7 +1021,10 @@ document.addEventListener("DOMContentLoaded", function() {
 
       vm.refresh();
     }).catch(function() {
+      mountPopupHeaderIfEnabled(null, vm);
+      mountPopupSortToolbar(null, vm);
       ko.applyBindings(vm, document.body);
+      vm._popupBindingsReady = true;
       vm.refresh();
     });
   });
