@@ -37,18 +37,23 @@
   </section>
 </template>
 
-<section id="toolbar" class="main" data-sbind="visible: opts.showPopupSort">
-  <div class="sort-modes">
-    <button type="button" title="Sort extensions alphabetically" data-sbind="click: setSortAlpha, css:{selected: opts.sortMode() == 'alpha'}">A-Z</button>
-    <button type="button" title="Sort by usage frequency" data-sbind="click: setSortFrequency, css:{selected: opts.sortMode() == 'frequency'}">Popular</button>
-    <button type="button" title="Sort by most recently installed" data-sbind="click: setSortRecent, css:{selected: opts.sortMode() == 'recent'}">Recent</button>
-  </div>
-  <p class="error" data-sbind="visible: error, text: error"></p>
-</section>
+<div id="popup-sort-toolbar-mount"></div>
+<template id="popup-sort-toolbar-template">
+  <section id="toolbar" class="main">
+    <div class="sort-modes">
+      <button type="button" title="Sort extensions alphabetically" data-sbind="click: setSortAlpha, css:{selected: opts.sortMode() == 'alpha'}">A-Z</button>
+      <button type="button" title="Sort by usage frequency" data-sbind="click: setSortFrequency, css:{selected: opts.sortMode() == 'frequency'}">Popular</button>
+      <button type="button" title="Sort by most recently installed" data-sbind="click: setSortRecent, css:{selected: opts.sortMode() == 'recent'}">Recent</button>
+    </div>
+    <p class="error" data-sbind="visible: error, text: error"></p>
+  </section>
+</template>
 
-<section id="toolbar-error" class="main" data-sbind="visible: !opts.showPopupSort">
-  <p class="error" data-sbind="visible: error, text: error"></p>
-</section>
+<template id="popup-sort-toolbar-error-template">
+  <section id="toolbar-error" class="main">
+    <p class="error" data-sbind="visible: error, text: error"></p>
+  </section>
+</template>
 
 <section id="search" class="main" data-sbind="if: opts.searchBox">
   <p><i class="fa fa-search"></i> <input type="text" data-sbind="value: search.q, valueUpdate: 'keyup'" tabindex="1" autofocus /></p>

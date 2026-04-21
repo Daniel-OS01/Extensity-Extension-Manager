@@ -457,6 +457,8 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 
     self.applyState = function(state) {
+      mountPopupHeaderIfEnabled(state, self);
+      mountPopupSortToolbar(state, self);
       self.opts.apply(state.options);
       self.activeProfile(state.options.activeProfile);
       self.profiles.localProfiles(state.profiles && state.profiles.localProfiles ? true : false);
@@ -959,6 +961,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
   _.defer(function() {
     var vm = new ExtensityViewModel();
+    vm._popupBindingsReady = false;
     ko.bindingProvider.instance = new ko.secureBindingsProvider({});
 
     ExtensityApi.getState().then(function(payload) {
