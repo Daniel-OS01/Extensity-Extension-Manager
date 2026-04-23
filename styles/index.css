@@ -782,7 +782,9 @@ body.popup-list-style-table.list-view #content > section:not(#profiles) > ul.ite
   max-width: 50%;
 }
 
-.item-actions .fa-gear:hover {
+.item-actions .fa-gear:hover,
+.item-action-icon:hover .fa-gear,
+.item-action-icon:focus .fa-gear {
   color: var(--accent);
 }
 
